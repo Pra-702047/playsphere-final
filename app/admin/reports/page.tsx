@@ -136,6 +136,32 @@ export default function AdminReportsPage() {
     return sum + (isNaN(priceVal) ? 0 : priceVal);
   }, 0);
 
+  // Group booking status counts
+  const confirmedCount = bookings.filter((b) => b.status === "confirmed" || b.status === "accepted").length;
+  const pendingCount = bookings.filter((b) => b.status === "pending").length;
+  const cancelledCount = bookings.filter((b) => b.status === "cancelled" || b.status === "rejected" || b.status === "refunded").length;
+
+  const confirmedPct = totalBookings > 0 ? Math.round((confirmedCount / totalBookings) * 100) : 0;
+  const pendingPct = totalBookings > 0 ? Math.round((pendingCount / totalBookings) * 100) : 0;
+  const cancelledPct = totalBookings > 0 ? 100 - confirmedPct - pendingPct : 0;
+
+  // Group revenue by sport (for confirmed/accepted bookings)
+  const revenueBySport: Record<string, number> = {};
+  confirmed.forEach((b) => {
+    const sportName = b.sport || "Football";
+    const priceVal = typeof b.price === "number" ? b.price : Number(b.price || 0);
+    const amount = isNaN(priceVal) ? 0 : priceVal;
+    revenueBySport[sportName] = (revenueBySport[sportName] || 0) + amount;
+  });
+
+  const sortedSports = Object.entries(revenueBySport)
+    .map(([sport, rev]) => ({
+      sport,
+      revenue: rev,
+      percentage: platformRevenue > 0 ? Math.round((rev / platformRevenue) * 100) : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   return (
     <div className="space-y-10 font-sans">
       {/* Header */}
@@ -161,6 +187,101 @@ export default function AdminReportsPage() {
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
           <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Total Venues</h3>
           <p className="text-3xl font-extrabold text-white mt-2">{totalTurfs}</p>
+        </div>
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Booking Status Distribution */}
+        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-white">Booking Status Distribution</h2>
+            <p className="text-gray-400 text-xs mt-1">Status breakdown of all reservations submitted on the platform.</p>
+          </div>
+
+          {totalBookings === 0 ? (
+            <p className="text-zinc-500 italic text-center py-12 text-sm">No reservations to display.</p>
+          ) : (
+            <div className="space-y-6">
+              {/* Stacked Percentage Bar */}
+              <div className="h-4 w-full bg-zinc-950 rounded-full overflow-hidden flex">
+                <div
+                  style={{ width: `${confirmedPct}%` }}
+                  className="bg-lime-500 h-full transition-all duration-500"
+                  title={`Successful: ${confirmedPct}%`}
+                />
+                <div
+                  style={{ width: `${pendingPct}%` }}
+                  className="bg-amber-500 h-full transition-all duration-500"
+                  title={`Pending: ${pendingPct}%`}
+                />
+                <div
+                  style={{ width: `${cancelledPct}%` }}
+                  className="bg-red-500 h-full transition-all duration-500"
+                  title={`Cancelled: ${cancelledPct}%`}
+                />
+              </div>
+
+              {/* Legend with Metrics */}
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-lime-500 inline-block" />
+                    <span>Successful</span>
+                  </div>
+                  <p className="text-lg font-extrabold text-white">{confirmedCount}</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold">{confirmedPct}% of total</p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" />
+                    <span>Pending</span>
+                  </div>
+                  <p className="text-lg font-extrabold text-white">{pendingCount}</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold">{pendingPct}% of total</p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />
+                    <span>Cancelled</span>
+                  </div>
+                  <p className="text-lg font-extrabold text-white">{cancelledCount}</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold">{cancelledPct}% of total</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Revenue by Sport */}
+        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-white">Revenue by Sport Category</h2>
+            <p className="text-gray-400 text-xs mt-1">Platform gross income breakdown by sports category type.</p>
+          </div>
+
+          {sortedSports.length === 0 ? (
+            <p className="text-zinc-500 italic text-center py-12 text-sm">No revenue data to display.</p>
+          ) : (
+            <div className="space-y-4">
+              {sortedSports.map((item) => (
+                <div key={item.sport} className="space-y-2">
+                  <div className="flex justify-between items-center text-xs font-bold text-zinc-300">
+                    <span className="capitalize">{item.sport}</span>
+                    <span className="text-white">₹{item.revenue.toLocaleString("en-IN")} <span className="text-zinc-500 text-[10px] ml-1">({item.percentage}%)</span></span>
+                  </div>
+                  <div className="h-2 w-full bg-zinc-950 rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${item.percentage}%` }}
+                      className="bg-lime-500 h-full rounded-full transition-all duration-500"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

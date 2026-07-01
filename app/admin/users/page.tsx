@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { getAllUsers, updateUserRole, deleteUserDoc, UserProfile } from "@/services/user.service";
+import { useAuth } from "@/context/AuthContext";
+import { logAdminActivity } from "@/services/log.service";
 
 export default function AdminUsersPage() {
+  const { user } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState("all");
@@ -28,9 +31,21 @@ export default function AdminUsersPage() {
     const confirmChange = confirm(`Are you sure you want to change this user's role to ${newRole}?`);
     if (!confirmChange) return;
 
+    const targetUser = users.find((u) => u.uid === userId);
+    const targetName = targetUser ? targetUser.name : "Unknown User";
+    const targetEmail = targetUser ? targetUser.email : "N/A";
+
     try {
       const res = await updateUserRole(userId, newRole);
       if (res.success) {
+        if (user) {
+          await logAdminActivity(
+            user.uid,
+            user.displayName || "Admin",
+            "UPDATE_USER_ROLE",
+            `Changed role of user "${targetName}" (${targetEmail}) to "${newRole}"`
+          );
+        }
         alert("User role updated successfully!");
         setUsers((prev) =>
           prev.map((u) => (u.uid === userId ? { ...u, role: newRole } : u))
@@ -47,9 +62,21 @@ export default function AdminUsersPage() {
     const confirmDelete = confirm("Are you sure you want to delete this user? This action is irreversible.");
     if (!confirmDelete) return;
 
+    const targetUser = users.find((u) => u.uid === userId);
+    const targetName = targetUser ? targetUser.name : "Unknown User";
+    const targetEmail = targetUser ? targetUser.email : "N/A";
+
     try {
       const res = await deleteUserDoc(userId);
       if (res.success) {
+        if (user) {
+          await logAdminActivity(
+            user.uid,
+            user.displayName || "Admin",
+            "DELETE_USER",
+            `Permanently deleted user account "${targetName}" (${targetEmail})`
+          );
+        }
         alert("User deleted successfully!");
         setUsers((prev) => prev.filter((u) => u.uid !== userId));
       } else {

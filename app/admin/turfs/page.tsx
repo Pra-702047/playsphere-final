@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { getAllTurfs, verifyTurf, deleteTurf, TurfData } from "@/services/turf.service";
 import { getAllUsers, UserProfile } from "@/services/user.service";
+import { useAuth } from "@/context/AuthContext";
+import { logAdminActivity } from "@/services/log.service";
 
 export default function AdminTurfsPage() {
+  const { user } = useAuth();
   const [turfs, setTurfs] = useState<TurfData[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +39,20 @@ export default function AdminTurfsPage() {
     );
     if (!confirmChange) return;
 
+    const turf = turfs.find((t) => t.id === turfId);
+    const turfName = turf ? turf.name : "Unknown Turf";
+
     try {
       const res = await verifyTurf(turfId, newStatus);
       if (res.success) {
+        if (user) {
+          await logAdminActivity(
+            user.uid,
+            user.displayName || "Admin",
+            newStatus ? "VERIFY_TURF" : "REVOKE_TURF_VERIFICATION",
+            `${newStatus ? "Approved and verified" : "Revoked verification for"} turf "${turfName}" (ID: ${turfId})`
+          );
+        }
         alert(newStatus ? "Turf verified successfully!" : "Verification revoked.");
         setTurfs((prev) =>
           prev.map((t) => (t.id === turfId ? { ...t, isVerified: newStatus } : t))
@@ -57,9 +71,20 @@ export default function AdminTurfsPage() {
     );
     if (!confirmDelete) return;
 
+    const turf = turfs.find((t) => t.id === turfId);
+    const turfName = turf ? turf.name : "Unknown Turf";
+
     try {
       const res = await deleteTurf(turfId);
       if (res.success) {
+        if (user) {
+          await logAdminActivity(
+            user.uid,
+            user.displayName || "Admin",
+            "DELETE_TURF",
+            `Permanently deleted turf "${turfName}" (ID: ${turfId})`
+          );
+        }
         alert("Turf deleted successfully!");
         setTurfs((prev) => prev.filter((t) => t.id !== turfId));
       } else {

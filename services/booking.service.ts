@@ -15,13 +15,18 @@ export const createBooking = async (
   try {
     const q = query(
       collection(db, "bookings"),
+      where("turfId", "==", bookingData.turfId),
       where("date", "==", bookingData.date),
       where("slot", "==", bookingData.slot)
     );
 
     const snapshot = await getDocs(q);
+    const activeBookings = snapshot.docs.filter((doc) => {
+      const data = doc.data();
+      return data.status !== "cancelled" && data.status !== "rejected" && data.status !== "refunded";
+    });
 
-    if (!snapshot.empty) {
+    if (activeBookings.length > 0) {
       return {
         success: false,
         message:
