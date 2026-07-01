@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllTurfs, verifyTurf, TurfData } from "@/services/turf.service";
+import { getAllTurfs, verifyTurf, deleteTurf, TurfData } from "@/services/turf.service";
 import { getAllUsers, UserProfile } from "@/services/user.service";
 
 export default function AdminTurfsPage() {
@@ -48,6 +48,26 @@ export default function AdminTurfsPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleDeleteTurf = async (turfId: string) => {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this turf permanently? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await deleteTurf(turfId);
+      if (res.success) {
+        alert("Turf deleted successfully!");
+        setTurfs((prev) => prev.filter((t) => t.id !== turfId));
+      } else {
+        alert("Failed to delete turf: " + res.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while deleting the turf.");
     }
   };
 
@@ -151,16 +171,24 @@ export default function AdminTurfsPage() {
                     </td>
                     <td className="py-4 px-6 text-right">
                       {t.id && (
-                        <button
-                          onClick={() => handleVerifyToggle(t.id!, t.isVerified || false)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-md ${
-                            t.isVerified
-                              ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20"
-                              : "bg-lime-500 hover:bg-lime-400 text-black shadow-lime-500/5"
-                          }`}
-                        >
-                          {t.isVerified ? "Revoke Verification" : "Approve & Verify"}
-                        </button>
+                        <div className="flex justify-end items-center gap-2">
+                          <button
+                            onClick={() => handleVerifyToggle(t.id!, t.isVerified || false)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-md whitespace-nowrap ${
+                              t.isVerified
+                                ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20"
+                                : "bg-lime-500 hover:bg-lime-400 text-black shadow-lime-500/5"
+                            }`}
+                          >
+                            {t.isVerified ? "Revoke Verification" : "Approve & Verify"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTurf(t.id!)}
+                            className="px-4 py-2 rounded-xl text-xs font-bold transition shadow-md bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
