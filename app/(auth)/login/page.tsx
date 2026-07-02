@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleDemoLogin = async (role: "player" | "owner" | "admin") => {
     let demoEmail = "";
@@ -77,9 +78,10 @@ export default function LoginPage() {
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
+    setError("");
 
     if (!email || !password) {
-      alert("Please fill all fields");
+      setError("Please fill all fields");
       return;
     }
 
@@ -93,8 +95,6 @@ export default function LoginPage() {
         const userDocSnap = await getDoc(doc(db, "users", result.user.uid));
         const userRole = userDocSnap.exists() ? (userDocSnap.data().role || "player") : "player";
 
-        alert("Login Success");
-
         if (userRole === "admin") {
           router.push("/admin");
         } else if (userRole === "owner") {
@@ -103,11 +103,11 @@ export default function LoginPage() {
           router.push("/dashboard");
         }
       } else {
-        alert(result.message || "Login Failed");
+        setError(result.message || "Login Failed");
       }
-    } catch (error) {
-      console.error(error);
-      alert("Login Failed");
+    } catch (err) {
+      console.error(err);
+      setError("Login Failed");
     } finally {
       setLoading(false);
     }
@@ -126,6 +126,12 @@ export default function LoginPage() {
             Login to book your favourite turf
           </p>
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm mb-4 text-center font-medium">
+            ⚠️ {error}
+          </div>
+        )}
 
         <form
           onSubmit={handleLogin}

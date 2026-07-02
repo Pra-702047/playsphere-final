@@ -348,10 +348,12 @@ export default function UserDashboard() {
                                     ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                                     : b.status === "confirmed" || b.status === "accepted"
                                     ? "bg-lime-500/10 text-lime-400 border-lime-500/20"
+                                    : b.status === "checked_in"
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                                     : "bg-red-500/10 text-red-400 border-red-500/20"
                                 }`}
                               >
-                                {b.status}
+                                {b.status === "checked_in" ? "Checked In" : b.status}
                               </span>
                             </div>
                             
@@ -360,6 +362,18 @@ export default function UserDashboard() {
                               <p>🕒 Slot: <span className="text-lime-400 font-semibold">{b.slot}</span></p>
                               <p>🏆 Sport: <span className="text-white">{b.sport}</span></p>
                               <p>💰 Price: <span className="text-white font-semibold">₹{b.price}</span></p>
+                              
+                              {b.otp && (b.status === "confirmed" || b.status === "accepted") && !b.otpVerified && (
+                                <div className="mt-3 p-3 bg-zinc-950 rounded-xl border border-zinc-800 flex justify-between items-center">
+                                  <span className="text-xs text-zinc-500 font-semibold">Check-in OTP:</span>
+                                  <span className="text-lime-400 text-lg font-black tracking-widest font-mono bg-lime-500/10 px-3 py-1 rounded-lg">{b.otp}</span>
+                                </div>
+                              )}
+                              {(b.otpVerified || b.status === "checked_in") && (
+                                <div className="mt-3 p-2.5 bg-emerald-500/5 rounded-xl border border-emerald-500/25 text-emerald-400 text-center font-black text-xs uppercase tracking-wider">
+                                  ✅ Check-in Verified
+                                </div>
+                              )}
                             </div>
                           </div>
 

@@ -14,14 +14,16 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("player");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRegister = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
+    setError("");
 
     if (!name || !email || !password) {
-      alert("Please fill all fields");
+      setError("Please fill all fields");
       return;
     }
 
@@ -39,11 +41,11 @@ export default function RegisterPage() {
         alert("Account created successfully!");
         router.push("/login");
       } else {
-        alert(result.message);
+        setError(result.message || "Failed to create account");
       }
-    } catch (error) {
-      console.error(error);
-      alert("Something went wrong");
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -62,6 +64,12 @@ export default function RegisterPage() {
             Join PlaySphere and start booking turfs instantly ⚽
           </p>
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm mb-4 text-center font-medium">
+            ⚠️ {error}
+          </div>
+        )}
 
         <form
           onSubmit={handleRegister}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getOwnerTurfs, TurfData } from "@/services/turf.service";
-import { getOwnerBookings, updateBookingStatus } from "@/services/booking.service";
+import { getOwnerBookings, updateBookingStatus, verifyBookingOTP, getBookingByOTP } from "@/services/booking.service";
 
 export default function OwnerBookingsPage() {
   const { user } = useAuth();
@@ -45,6 +45,65 @@ export default function OwnerBookingsPage() {
     }
   };
 
+  const [otpInput, setOtpInput] = useState("");
+  const [otpVerifying, setOtpVerifying] = useState(false);
+
+  const handleQuickVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpInput.trim() || !user) return;
+
+    setOtpVerifying(true);
+    try {
+      const booking = await getBookingByOTP(user.uid, otpInput.trim());
+      if (!booking) {
+        alert("Invalid OTP or no booking found matching this code under your turfs.");
+        setOtpVerifying(false);
+        return;
+      }
+
+      if (booking.otpVerified || booking.status === "checked_in") {
+        alert(`This slot is already checked in for ${booking.playerName}!`);
+        setOtpVerifying(false);
+        return;
+      }
+
+      const res = await verifyBookingOTP(booking.id);
+      if (res.success) {
+        alert(`Successfully Checked In ${booking.playerName} for ${booking.turfName} at ${booking.slot}!`);
+        setBookings((prev) =>
+          prev.map((b) => (b.id === booking.id ? { ...b, status: "checked_in", otpVerified: true } : b))
+        );
+        setOtpInput("");
+      } else {
+        alert("Verification failed: " + res.message);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Error verifying OTP: " + err.message);
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const handleInlineVerifyOTP = async (bookingId: string, correctOtp: string) => {
+    const entered = prompt(`Enter the 4-digit check-in OTP (Expected: ${correctOtp}):`);
+    if (entered === null) return;
+    if (entered.trim() !== correctOtp) {
+      alert("Incorrect OTP code. Verification failed.");
+      return;
+    }
+
+    const res = await verifyBookingOTP(bookingId);
+    if (res.success) {
+      alert("Slot check-in verified successfully!");
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: "checked_in", otpVerified: true } : b))
+      );
+    } else {
+      alert("Verification failed: " + res.message);
+    }
+  };
+
   const filteredBookings = bookings.filter((b) => {
     const matchesTurf = selectedTurfId === "all" || b.turfId === selectedTurfId;
     const matchesStatus = selectedStatus === "all" || b.status === selectedStatus;
@@ -66,6 +125,29 @@ export default function OwnerBookingsPage() {
       <div>
         <h1 className="text-4xl font-extrabold text-white">Manage Bookings</h1>
         <p className="text-gray-400 mt-2">Approve client bookings, manage cancellations, and process refunds.</p>
+      </div>
+
+      {/* Quick Check-in Verification Card */}
+      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-xl">
+        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">🔑 Quick Check-in Verification</h2>
+        <p className="text-gray-400 text-xs mb-4">Enter the 4-digit check-in OTP provided by the player to verify slot occupancy.</p>
+        <form onSubmit={handleQuickVerifyOTP} className="flex gap-3">
+          <input
+            type="text"
+            maxLength={4}
+            placeholder="e.g. 4821"
+            value={otpInput}
+            onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
+            className="flex-1 p-3.5 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500 font-mono text-lg font-black tracking-widest text-center"
+          />
+          <button
+            type="submit"
+            disabled={otpVerifying}
+            className="bg-lime-500 hover:bg-lime-400 disabled:bg-lime-500/50 text-black font-extrabold px-6 rounded-xl transition text-sm cursor-pointer whitespace-nowrap"
+          >
+            {otpVerifying ? "Verifying..." : "Verify Slot"}
+          </button>
+        </form>
       </div>
 
       {/* Filter Bar */}
@@ -98,6 +180,7 @@ export default function OwnerBookingsPage() {
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="confirmed">Confirmed</option>
+            <option value="checked_in">Checked In</option>
             <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled (by Player)</option>
             <option value="refunded">Refunded</option>
@@ -156,6 +239,11 @@ export default function OwnerBookingsPage() {
                       <div className="font-semibold text-white">{b.playerName}</div>
                       <div className="text-xs text-gray-500">{b.mobile}</div>
                       <div className="text-xs text-gray-500">{b.userEmail}</div>
+                      {b.otp && (b.status === "confirmed" || b.status === "accepted") && !b.otpVerified && (
+                        <div className="inline-block mt-1 bg-lime-500/10 text-lime-400 text-[10px] font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                          OTP: {b.otp}
+                        </div>
+                      )}
                       {b.notes && (
                         <div className="text-xs text-amber-500/80 italic mt-1 max-w-[200px] truncate" title={b.notes}>
                           "{b.notes}"
@@ -178,12 +266,14 @@ export default function OwnerBookingsPage() {
                             ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                             : b.status === "confirmed" || b.status === "accepted"
                             ? "bg-lime-500/10 text-lime-400 border border-lime-500/20"
+                            : b.status === "checked_in"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : b.status === "cancelled"
                             ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
                             : "bg-red-500/10 text-red-400 border border-red-500/20"
                         }`}
                       >
-                        {b.status}
+                        {b.status === "checked_in" ? "Checked In" : b.status}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
@@ -203,12 +293,20 @@ export default function OwnerBookingsPage() {
                           </button>
                         </div>
                       ) : b.status === "confirmed" || b.status === "accepted" ? (
-                        <button
-                          onClick={() => handleStatusChange(b.id, "refunded")}
-                          className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-semibold border border-zinc-700 transition"
-                        >
-                          Refund
-                        </button>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleInlineVerifyOTP(b.id, b.otp || "")}
+                            className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition"
+                          >
+                            Verify OTP
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(b.id, "refunded")}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-semibold border border-zinc-700 transition"
+                          >
+                            Refund
+                          </button>
+                        </div>
                       ) : b.status === "cancelled" ? (
                         <button
                           onClick={() => handleStatusChange(b.id, "refunded")}
@@ -216,6 +314,10 @@ export default function OwnerBookingsPage() {
                         >
                           Process Refund
                         </button>
+                      ) : b.status === "checked_in" ? (
+                        <span className="text-emerald-400 text-xs font-extrabold flex justify-end items-center gap-1">
+                          ✅ Verified Check-in
+                        </span>
                       ) : (
                         <span className="text-zinc-500 text-xs italic">No actions available</span>
                       )}
