@@ -41,7 +41,7 @@ export default function RegisterPage() {
         alert("Account created successfully!");
         router.push("/login");
       } else {
-        setError(result.message);
+        setError(result.message || "Failed to create account");
       }
     } catch (err) {
       console.error(err);

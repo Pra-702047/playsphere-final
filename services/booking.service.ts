@@ -204,7 +204,7 @@ export const verifyBookingOTP = async (bookingId: string) => {
   }
 };
 
-export const getBookingByOTP = async (ownerId: string, otp: string) => {
+export const getBookingByOTP = async (ownerId: string, otp: string): Promise<any> => {
   try {
     const q = query(
       collection(db, "bookings"),
