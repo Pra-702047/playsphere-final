@@ -150,15 +150,28 @@ export default function MyBookingsPage() {
                   </strong>{" "}
                   <span
                     className={
-                      booking.status ===
-                      "cancelled"
+                      booking.status === "cancelled"
                         ? "text-red-400"
+                        : booking.status === "checked_in"
+                        ? "text-emerald-400"
                         : "text-lime-400"
                     }
                   >
-                    {booking.status}
+                    {booking.status === "checked_in" ? "Checked In" : booking.status}
                   </span>
                 </p>
+
+                {booking.otp && (booking.status === "confirmed" || booking.status === "accepted") && !booking.otpVerified && (
+                  <div className="mt-3 p-3 bg-zinc-950 rounded-xl border border-zinc-800 flex justify-between items-center max-w-sm">
+                    <span className="text-xs text-zinc-500 font-semibold">Check-in OTP:</span>
+                    <span className="text-lime-400 text-base font-black tracking-widest font-mono bg-lime-500/10 px-2.5 py-0.5 rounded">{booking.otp}</span>
+                  </div>
+                )}
+                {(booking.otpVerified || booking.status === "checked_in") && (
+                  <div className="mt-3 p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/25 text-emerald-400 text-center font-black text-xs uppercase tracking-wider max-w-sm">
+                    ✅ Check-in Verified
+                  </div>
+                )}
 
                 {booking.status !==
                   "cancelled" && (

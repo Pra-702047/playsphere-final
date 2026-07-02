@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getOwnerTurfs, TurfData } from "@/services/turf.service";
-import { getOwnerBookings, updateBookingStatus } from "@/services/booking.service";
+import { getOwnerBookings, updateBookingStatus, verifyBookingOTP } from "@/services/booking.service";
 import Link from "next/link";
 
 type MonthlyRevenue = {
@@ -43,6 +43,25 @@ export default function OwnerDashboard() {
       );
     } else {
       alert("Failed to update status: " + success.message);
+    }
+  };
+
+  const handleInlineVerifyOTP = async (bookingId: string, correctOtp: string) => {
+    const entered = prompt(`Enter the 4-digit check-in OTP (Expected: ${correctOtp}):`);
+    if (entered === null) return;
+    if (entered.trim() !== correctOtp) {
+      alert("Incorrect OTP code. Verification failed.");
+      return;
+    }
+
+    const res = await verifyBookingOTP(bookingId);
+    if (res.success) {
+      alert("Slot check-in verified successfully!");
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: "checked_in", otpVerified: true } : b))
+      );
+    } else {
+      alert("Verification failed: " + res.message);
     }
   };
 
@@ -264,6 +283,11 @@ export default function OwnerDashboard() {
                     <td className="py-4 px-2">
                       <div className="font-medium text-white">{b.playerName}</div>
                       <div className="text-[12px] text-gray-500">{b.mobile}</div>
+                      {b.otp && (b.status === "confirmed" || b.status === "accepted") && !b.otpVerified && (
+                        <div className="inline-block mt-0.5 bg-lime-500/10 text-lime-400 text-[9px] font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                          OTP: {b.otp}
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-2">
                       <div>📅 {b.date}</div>
@@ -277,10 +301,12 @@ export default function OwnerDashboard() {
                             ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                             : b.status === "confirmed" || b.status === "accepted"
                             ? "bg-lime-500/10 text-lime-400 border border-lime-500/20"
+                            : b.status === "checked_in"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : "bg-red-500/10 text-red-400 border border-red-500/20"
                         }`}
                       >
-                        {b.status}
+                        {b.status === "checked_in" ? "Checked In" : b.status}
                       </span>
                     </td>
                     <td className="py-4 px-2 text-right">
@@ -300,12 +326,24 @@ export default function OwnerDashboard() {
                           </button>
                         </div>
                       ) : b.status === "confirmed" || b.status === "accepted" ? (
-                        <button
-                          onClick={() => handleStatusChange(b.id, "refunded")}
-                          className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded-lg text-xs font-medium border border-zinc-700"
-                        >
-                          Refund
-                        </button>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleInlineVerifyOTP(b.id, b.otp || "")}
+                            className="bg-lime-500 hover:bg-lime-400 text-black px-2.5 py-1 rounded-lg text-xs font-bold transition"
+                          >
+                            Verify OTP
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(b.id, "refunded")}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-zinc-700 transition"
+                          >
+                            Refund
+                          </button>
+                        </div>
+                      ) : b.status === "checked_in" ? (
+                        <span className="text-emerald-400 text-xs font-extrabold flex justify-end items-center gap-1">
+                          ✅ Checked In
+                        </span>
                       ) : (
                         <span className="text-zinc-500 text-xs">No Action</span>
                       )}

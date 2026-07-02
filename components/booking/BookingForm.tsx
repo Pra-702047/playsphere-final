@@ -157,6 +157,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
     if (!user) return;
 
     setLoading(true);
+    const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
     const result = await createBooking({
       userId: user.uid,
       userEmail: user.email,
@@ -174,6 +175,8 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
       status: "confirmed",
       paymentId,
       createdAt: new Date(),
+      otp: generatedOtp,
+      otpVerified: false,
     });
 
     if (result.success) {
@@ -382,6 +385,8 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                   slot,
                   appliedCouponId: appliedCoupon?.id || null,
                   appliedCouponUsageCount: appliedCoupon?.usageCount || 0,
+                  otp: Math.floor(1000 + Math.random() * 9000).toString(),
+                  otpVerified: false,
                 },
               }),
             });

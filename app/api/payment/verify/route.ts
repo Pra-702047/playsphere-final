@@ -62,6 +62,8 @@ export async function POST(req: Request) {
       status: "confirmed",
       paymentId: razorpay_payment_id,
       createdAt: new Date(),
+      otp: bookingDetails.otp,
+      otpVerified: bookingDetails.otpVerified || false,
     };
 
     const bookingRef = await addDoc(collection(db, "bookings"), bookingPayload);

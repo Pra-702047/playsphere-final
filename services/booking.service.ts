@@ -185,3 +185,42 @@ export const rescheduleBooking = async (
     };
   }
 };
+
+export const verifyBookingOTP = async (bookingId: string) => {
+  try {
+    await updateDoc(doc(db, "bookings", bookingId), {
+      otpVerified: true,
+      status: "checked_in",
+    });
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error("Error verifying OTP:", error);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+};
+
+export const getBookingByOTP = async (ownerId: string, otp: string) => {
+  try {
+    const q = query(
+      collection(db, "bookings"),
+      where("ownerId", "==", ownerId),
+      where("otp", "==", otp)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return null;
+    }
+    return {
+      id: snapshot.docs[0].id,
+      ...snapshot.docs[0].data(),
+    };
+  } catch (error) {
+    console.error("Error getting booking by OTP:", error);
+    return null;
+  }
+};
