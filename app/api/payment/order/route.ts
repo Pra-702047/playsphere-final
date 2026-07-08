@@ -1,16 +1,42 @@
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { db } from "@/firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 export async function POST(req: Request) {
   try {
-    const { amount } = await req.json();
+    const { turfId, date, couponId } = await req.json();
 
-    if (!amount || typeof amount !== "number") {
+    if (!turfId) {
       return NextResponse.json(
-        { success: false, message: "Valid amount parameter is required" },
+        { success: false, message: "Valid turfId parameter is required" },
         { status: 400 }
       );
     }
+
+    const turfDoc = await getDoc(doc(db, "turfs", turfId));
+    if (!turfDoc.exists()) {
+       return NextResponse.json({ success: false, message: "Turf not found" }, { status: 404 });
+    }
+    const turfData = turfDoc.data();
+    
+    const specialPrice = date ? turfData.specialRates?.[date] : undefined;
+    const currentHourlyPrice = specialPrice !== undefined ? specialPrice : turfData.price;
+    
+    let discountAmount = 0;
+    if (couponId) {
+       const couponDoc = await getDoc(doc(db, "coupons", couponId));
+       if (couponDoc.exists()) {
+          const couponData = couponDoc.data();
+          if (couponData.discountType === "percentage") {
+             discountAmount = Math.round((currentHourlyPrice * couponData.discountValue) / 100);
+          } else {
+             discountAmount = couponData.discountValue;
+          }
+       }
+    }
+    
+    const amount = Math.max(0, currentHourlyPrice - discountAmount);
 
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;

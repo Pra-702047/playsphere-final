@@ -1,4 +1,4 @@
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   addDoc,
   collection,
@@ -149,6 +149,16 @@ export const rescheduleBooking = async (
   newSlot: string
 ) => {
   try {
+    const bookingDocRef = doc(db, "bookings", bookingId);
+    const bookingSnap = await getDoc(bookingDocRef);
+    if (!bookingSnap.exists()) {
+      return { success: false, message: "Booking not found" };
+    }
+    
+    if (bookingSnap.data().turfId !== turfId) {
+      return { success: false, message: "Security Error: Cannot change turf during reschedule." };
+    }
+
     const q = query(
       collection(db, "bookings"),
       where("turfId", "==", turfId),
@@ -209,11 +219,16 @@ export const getBookingByOTP = async (ownerId: string, otp: string): Promise<any
     const q = query(
       collection(db, "bookings"),
       where("ownerId", "==", ownerId),
-      where("otp", "==", otp)
+      where("otp", "==", otp),
+      where("status", "==", "confirmed")
     );
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
       return null;
+    }
+    if (snapshot.docs.length > 1) {
+      console.warn("OTP Collision detected for owner:", ownerId);
+      throw new Error("Multiple active bookings found with this OTP. Please verify manually.");
     }
     return {
       id: snapshot.docs[0].id,
