@@ -53,7 +53,7 @@ export default function ConnectPage() {
 
             {/* Instagram Card */}
             <a
-              href="https://www.instagram.com/playsphere.in?igsh=MWJoamUwOWZqa28ybQ=="
+              href="https://www.instagram.com/playsphere.space"
               target="_blank"
               rel="noopener noreferrer"
               className="group block p-8 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-md hover:border-pink-500/50 hover:bg-zinc-900 transition-all duration-300 hover:shadow-[0_0_30px_rgba(236,72,153,0.1)] hover:-translate-y-1 text-center space-y-6"

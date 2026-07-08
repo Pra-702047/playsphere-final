@@ -253,23 +253,10 @@ export default function UserDashboard() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-12 space-y-12">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-900 pb-8">
+        <div className="flex flex-col justify-between items-start border-b border-zinc-900 pb-8">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">👋 Welcome Back, {user?.displayName || "Player"}</h1>
-            <p className="text-gray-400 mt-1">Check your bookings, edit your profile details, and track your invoices.</p>
-          </div>
-          
-          <div className="w-full md:w-64 bg-zinc-900 border border-zinc-800 p-4.5 rounded-2xl flex flex-col justify-between">
-            <div className="flex justify-between items-center text-xs font-bold mb-2">
-              <span className="text-zinc-400 uppercase tracking-wider text-[10px]">Profile Completion</span>
-              <span className="text-lime-400 font-mono font-black">{profileCompletion}%</span>
-            </div>
-            <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-800/80">
-              <div
-                className="bg-lime-400 h-full rounded-full transition-all duration-1000"
-                style={{ width: `${profileCompletion}%` }}
-              />
-            </div>
+            <h1 className="text-4xl font-extrabold tracking-tight">Welcome, {user?.displayName || "Player"}</h1>
+            <p className="text-gray-400 mt-1">Here's what's coming up next.</p>
           </div>
         </div>
 
@@ -301,11 +288,11 @@ export default function UserDashboard() {
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              {tab === "bookings" && "📅 Bookings"}
-              {tab === "calendar" && "🗓️ Schedule"}
-              {tab === "profile" && "👤 Profile"}
-              {tab === "favorites" && "❤️ Favorites"}
-              {tab === "notifications" && "🔔 Alerts"}
+              {tab === "bookings" && "Bookings"}
+              {tab === "calendar" && "Schedule"}
+              {tab === "profile" && "Profile"}
+              {tab === "favorites" && "Favorites"}
+              {tab === "notifications" && "Alerts"}
               
               {tab === "notifications" && unreadNotifs > 0 && (
                 <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
@@ -329,7 +316,7 @@ export default function UserDashboard() {
               {/* BOOKINGS TAB */}
               {activeTab === "bookings" && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">My Bookings logs</h2>
+                  <h2 className="text-2xl font-bold">My Bookings</h2>
                   
                   {bookings.length === 0 ? (
                     <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-12 text-center text-zinc-500 italic">
@@ -342,19 +329,18 @@ export default function UserDashboard() {
                           <div className="space-y-3">
                             <div className="flex justify-between items-start">
                               <h3 className="text-xl font-bold text-white">{b.turfName || "Sports Turf"}</h3>
-                              <span
-                                className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                                <span className={`w-2 h-2 rounded-full ${
                                   b.status === "pending"
-                                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                    ? "bg-amber-400"
                                     : b.status === "confirmed" || b.status === "accepted"
-                                    ? "bg-lime-500/10 text-lime-400 border-lime-500/20"
+                                    ? "bg-lime-400"
                                     : b.status === "checked_in"
-                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                    : "bg-red-500/10 text-red-400 border-red-500/20"
-                                }`}
-                              >
+                                    ? "bg-emerald-400"
+                                    : "bg-red-400"
+                                }`}></span>
                                 {b.status === "checked_in" ? "Checked In" : b.status}
-                              </span>
+                              </div>
                             </div>
                             
                             <div className="text-sm text-zinc-400 space-y-1">
@@ -449,7 +435,7 @@ export default function UserDashboard() {
               {activeTab === "calendar" && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-bold">🗓️ Schedule Calendar</h2>
+                    <h2 className="text-2xl font-bold">Schedule Calendar</h2>
                     <p className="text-zinc-400 text-sm mt-1">Track your upcoming play sessions over the next 7 days.</p>
                   </div>
 
@@ -504,7 +490,7 @@ export default function UserDashboard() {
                   
                   {favoritedTurfs.length === 0 ? (
                     <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-12 text-center text-zinc-500 italic">
-                      No liked turfs found yet. Browse venues and like them to add here!
+                      You haven't saved any turfs yet. Tap the heart icon on a venue to save it here.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -574,7 +560,7 @@ export default function UserDashboard() {
         <div className="space-y-6 pt-12 border-t border-zinc-900">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">🏟️ Recommended Venues</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Recommended Venues</h2>
               <p className="text-zinc-500 text-sm mt-0.5">Top-rated venues recommended for you based on ratings and availability.</p>
             </div>
             <a href="/turfs" className="text-lime-400 text-sm font-bold hover:underline">

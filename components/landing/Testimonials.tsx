@@ -5,22 +5,22 @@ import { motion } from "framer-motion";
 
 const testimonials = [
   {
-    quote: "PlaySphere made booking turf slots so much easier. The Razorpay checkout was seamless and the slot list update was instantaneous. Outstanding UX!",
+    quote: "Booked a turf for Sunday morning, ground was in great condition. Really easy to find slots.",
     author: "Rohan Sharma",
     role: "Regular Player",
-    avatar: "⚽",
+    avatar: "RS",
   },
   {
-    quote: "As an owner, managing slot blocks, custom pricing, and holiday calendars was a nightmare. PlaySphere's owner panel resolved all of that. Highly recommended!",
+    quote: "Got tired of managing WhatsApp bookings for my turf. This platform handles all our weekend slots automatically.",
     author: "Amit Patel",
     role: "Turf Manager",
-    avatar: "🏟️",
+    avatar: "AP",
   },
   {
-    quote: "Excellent platform. We easily exported platform financial reports to CSV. Turf verifications let us ensure high-quality standards for players.",
+    quote: "Found a box cricket league match nearby within minutes. Good turf quality.",
     author: "Nisha Rao",
-    role: "Platform Admin",
-    avatar: "⚙️",
+    role: "Player",
+    avatar: "NR",
   },
 ];
 
@@ -50,7 +50,9 @@ export default function Testimonials() {
                 "{t.quote}"
               </p>
               <div className="flex items-center gap-3 mt-6 pt-4 border-t border-zinc-800/80">
-                <div className="text-2xl bg-zinc-850 p-2 rounded-lg">{t.avatar}</div>
+                <div className="flex items-center justify-center w-10 h-10 bg-zinc-800 text-zinc-300 font-bold text-sm rounded-full">
+                  {t.avatar}
+                </div>
                 <div>
                   <h4 className="text-sm font-bold text-white">{t.author}</h4>
                   <p className="text-zinc-500 text-xs mt-0.5">{t.role}</p>

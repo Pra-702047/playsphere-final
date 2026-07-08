@@ -63,28 +63,7 @@ export default function Hero() {
     router.push(`/turfs?${queryParams.toString()}`);
   };
 
-  const handleMouseMoveButton = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const btn = e.currentTarget;
-    const rect = btn.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
 
-    gsap.to(btn, {
-      x: x * 0.3,
-      y: y * 0.3,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  };
-
-  const handleMouseLeaveButton = (e: React.MouseEvent<HTMLButtonElement>) => {
-    gsap.to(e.currentTarget, {
-      x: 0,
-      y: 0,
-      duration: 0.5,
-      ease: "elastic.out(1, 0.3)",
-    });
-  };
 
   return (
     <section className="relative min-h-[92vh] flex flex-col justify-between bg-black text-white px-6 overflow-hidden select-none pb-12 pt-8">
@@ -126,15 +105,14 @@ export default function Hero() {
 
         {/* Subtitle */}
         <p className="fade-up-hero opacity-0 max-w-2xl mx-auto text-zinc-300 text-sm md:text-base leading-relaxed font-semibold">
-          Premium sports venues. Real-time availability.<br />
-          Play your game. Anytime, anywhere.
+          Book the best turf grounds in your city in 3 clicks.
         </p>
 
-        {/* Replicated Floating Search Card with Date Selector */}
+        {/* Search Form */}
         <form
           ref={formRef}
           onSubmit={handleSearch}
-          className="fade-up-hero opacity-0 max-w-4xl mx-auto bg-zinc-950/45 border border-zinc-800/80 p-3 rounded-2xl md:rounded-full shadow-[0_30px_100px_rgba(0,0,0,0.8),0_0_50px_rgba(163,230,53,0.02)] backdrop-blur-2xl flex flex-col md:flex-row gap-3 items-center hover:border-zinc-700/60 transition-all duration-500"
+          className="fade-up-hero opacity-0 max-w-4xl mx-auto bg-zinc-950/80 border border-zinc-800 p-3 rounded-2xl md:rounded-full flex flex-col md:flex-row gap-3 items-center transition-all duration-300"
         >
           {/* Location Selector */}
           <div className="flex-1 w-full flex items-center gap-3.5 px-5 py-2 md:py-0 border-b border-zinc-850 md:border-b-0 md:border-r border-zinc-850 text-left">
@@ -187,13 +165,10 @@ export default function Hero() {
           {/* Search Button */}
           <button
             type="submit"
-            onMouseMove={handleMouseMoveButton}
-            onMouseLeave={handleMouseLeaveButton}
-            className="w-full md:w-auto relative overflow-hidden group bg-lime-400 hover:bg-lime-300 text-black font-black px-8 py-4.5 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(163,230,53,0.35)] cursor-pointer flex items-center justify-center gap-2"
+            className="w-full md:w-auto relative bg-lime-400 hover:bg-lime-500 text-black font-black px-8 py-4.5 rounded-full transition-colors duration-200 cursor-pointer flex items-center justify-center gap-2"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-lime-300 via-emerald-300 to-cyan-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <span className="relative z-10 flex items-center justify-center gap-2 text-xs uppercase tracking-widest font-black">
-              Search Turfs <span className="font-extrabold">&gt;</span>
+              Search Turfs
             </span>
           </button>
         </form>
@@ -236,52 +211,9 @@ export default function Hero() {
           >
             <span>🏀</span> Basketball
           </button>
-          <button
-            type="button"
-            onClick={() => setSport("all")}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-zinc-900 hover:text-white transition duration-300 cursor-pointer"
-          >
-            <span>✨</span> More Sports
-          </button>
         </div>
       </div>
 
-      <div className="flex-1" />
-
-      {/* Replicated Bottom Value Props Row */}
-      <div className="fade-up-hero opacity-0 max-w-7xl w-full mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 px-6 z-10 mt-8 border-t border-zinc-900/60 pt-8">
-        <div className="flex items-start gap-3.5 text-left">
-          <span className="text-lime-400 text-2xl bg-zinc-950/80 p-2.5 rounded-xl border border-zinc-850/80">🛡️</span>
-          <div>
-            <h4 className="text-white font-extrabold text-sm tracking-wide">Verified Turfs</h4>
-            <p className="text-zinc-500 text-xs mt-0.5 font-bold">100+ Verified Venues</p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3.5 text-left">
-          <span className="text-lime-400 text-2xl bg-zinc-950/80 p-2.5 rounded-xl border border-zinc-850/80">⚡</span>
-          <div>
-            <h4 className="text-white font-extrabold text-sm tracking-wide">Instant Booking</h4>
-            <p className="text-zinc-500 text-xs mt-0.5 font-bold">Real-time Availability</p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3.5 text-left">
-          <span className="text-lime-400 text-2xl bg-zinc-950/80 p-2.5 rounded-xl border border-zinc-850/80">🏷️</span>
-          <div>
-            <h4 className="text-white font-extrabold text-sm tracking-wide">Best Prices</h4>
-            <p className="text-zinc-500 text-xs mt-0.5 font-bold">Exclusive Online Offers</p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3.5 text-left">
-          <span className="text-lime-400 text-2xl bg-zinc-950/80 p-2.5 rounded-xl border border-zinc-850/80">📞</span>
-          <div>
-            <h4 className="text-white font-extrabold text-sm tracking-wide">24/7 Support</h4>
-            <p className="text-zinc-500 text-xs mt-0.5 font-bold">We're Always Here</p>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }

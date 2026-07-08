@@ -16,17 +16,23 @@ export default function RouteGuard({
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
+    console.log("RouteGuard Debug:", { loading, hasUser: !!user, role, allowedRoles, authorized });
     if (!loading) {
       if (!user) {
+        console.log("RouteGuard: No user, redirecting to /login");
         router.push("/login");
       } else if (!allowedRoles.includes(role || "")) {
+        console.log("RouteGuard: Role not allowed. Role:", role, "Allowed:", allowedRoles);
         // Fallback redirection
-        router.push(role === "admin" ? "/admin" : role === "owner" ? "/owner" : "/dashboard");
+        const target = role === "admin" ? "/admin" : role === "owner" ? "/owner" : "/dashboard";
+        console.log("RouteGuard: Redirecting to", target);
+        router.push(target);
       } else {
+        console.log("RouteGuard: Authorized!");
         setAuthorized(true);
       }
     }
-  }, [user, role, loading, router, allowedRoles]);
+  }, [user, role, loading, router, allowedRoles, authorized]);
 
   if (loading || !authorized) {
     return (

@@ -258,7 +258,7 @@ export default function SportsCanvas() {
         ctx.fill();
 
         ctx.fillStyle = "#ffffff";
-        ctx.shadowBlur = 45;
+        ctx.shadowBlur = 0;
         ctx.shadowColor = "#a3e635";
         ctx.beginPath();
         ctx.arc(light.x, light.y, 14, 0, Math.PI * 2);
@@ -274,7 +274,7 @@ export default function SportsCanvas() {
       ctx.strokeStyle = "rgba(163, 230, 53, 0.9)";
       ctx.lineWidth = 5;
       ctx.shadowColor = "#a3e635";
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 0;
       ctx.lineCap = "square";
       // Goal posts outline
       ctx.beginPath();
@@ -307,7 +307,7 @@ export default function SportsCanvas() {
       ctx.strokeStyle = "rgba(245, 158, 11, 0.8)"; // Orange
       ctx.lineWidth = 4;
       ctx.shadowColor = "#f59e0b";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 0;
       ctx.strokeRect(boardX - 40, boardY - 40, 80, 60);
       ctx.strokeRect(boardX - 15, boardY - 10, 30, 20);
 
@@ -886,7 +886,7 @@ export default function SportsCanvas() {
         if (p.ball && p.ball.active) {
           ctx.fillStyle = "#ffffff";
           ctx.shadowColor = "#ffffff";
-          ctx.shadowBlur = 18;
+          ctx.shadowBlur = 0;
           ctx.beginPath();
           ctx.arc(p.ball.x, p.ball.y, 8, 0, Math.PI * 2);
           ctx.fill();
@@ -906,7 +906,7 @@ export default function SportsCanvas() {
           // Draw cone-shaped shuttlecock
           ctx.strokeStyle = "#ffffff";
           ctx.shadowColor = "#ffffff";
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 0;
           ctx.lineWidth = 2.5;
 
           const sx = p.shuttle.x;
@@ -947,7 +947,7 @@ export default function SportsCanvas() {
 
         ctx.strokeStyle = `rgba(163, 230, 53, ${sw.alpha})`;
         ctx.shadowColor = "#a3e635";
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = 0;
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
@@ -967,7 +967,7 @@ export default function SportsCanvas() {
         crack.alpha -= 0.095;
         ctx.strokeStyle = `rgba(255, 255, 255, ${crack.alpha})`;
         ctx.shadowColor = "#ffffff";
-        ctx.shadowBlur = 30;
+        ctx.shadowBlur = 0;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(crack.points[0].x, crack.points[0].y);
@@ -1019,7 +1019,7 @@ export default function SportsCanvas() {
 
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();

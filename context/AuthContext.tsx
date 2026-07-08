@@ -46,9 +46,15 @@ export const AuthProvider = ({
           setUser(currentUser);
           if (currentUser) {
             try {
-              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-              if (userDoc.exists()) {
-                setRole(userDoc.data().role || "player");
+              const docPromise = getDoc(doc(db, "users", currentUser.uid));
+              
+              const userDoc = await docPromise as any;
+              
+              if (userDoc && userDoc.exists()) {
+                let fetchedRole = userDoc.data().role || "player";
+                // Normalize legacy or incorrectly created 'user' roles to 'player'
+                if (fetchedRole === "user") fetchedRole = "player";
+                setRole(fetchedRole);
               } else {
                 setRole("player");
               }

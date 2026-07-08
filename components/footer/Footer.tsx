@@ -81,7 +81,7 @@ export default function Footer() {
             <div className="flex gap-4 pt-1 items-center">
               {/* Instagram */}
               <a
-                href="https://www.instagram.com/playsphere.in?igsh=MWJoamUwOWZqa28ybQ=="
+                href="https://www.instagram.com/playsphere.space"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-zinc-550 hover:text-pink-500 transition"

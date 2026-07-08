@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar/Navbar";
 import Hero from "@/components/landing/Hero";
+import Banners from "@/components/landing/Banners";
 import Stats from "@/components/landing/Stats";
 import Featured from "@/components/landing/Featured";
 import WhyUs from "@/components/landing/WhyUs";
@@ -13,6 +14,7 @@ export default function Home() {
     <>
       <Navbar />
       <Hero />
+      <Banners />
       <Stats />
       <Featured />
       <WhyUs />
