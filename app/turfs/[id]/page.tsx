@@ -54,13 +54,10 @@ export default function TurfDetailsPage({
       }
       setTurf(data);
       
-      // Set gallery images (using defaults if empty)
-      const images = [
-        data.imageUrl,
-        "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800&auto=format&fit=crop&q=60", // stadium
-        "https://images.unsplash.com/photo-1518063319789-7217e6706b04?w=800&auto=format&fit=crop&q=60", // court
-        "https://images.unsplash.com/photo-1526232764851-a0b411f93f0d?w=800&auto=format&fit=crop&q=60", // box cricket
-      ].filter(Boolean) as string[];
+      // Set gallery images (combining primary and additional images)
+      const images = Array.from(
+        new Set([data.imageUrl, ...(data.images || [])].filter(Boolean))
+      ) as string[];
       setGalleryImages(images);
       setActiveImage(images[0] || "");
 
