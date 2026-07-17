@@ -4,6 +4,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { signOut } from "firebase/auth";
+import { auth } from "@/firebase/auth";
+
 export default function RouteGuard({ 
   children, 
   allowedRoles 
@@ -11,16 +14,18 @@ export default function RouteGuard({
   children: React.ReactNode, 
   allowedRoles: string[] 
 }) {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, isEmailVerified } = useAuth();
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    console.log("RouteGuard Debug:", { loading, hasUser: !!user, role, allowedRoles, authorized });
     if (!loading) {
       if (!user) {
         console.log("RouteGuard: No user, redirecting to /login");
         router.push("/login");
+      } else if (!isEmailVerified) {
+        console.warn("RouteGuard: User not verified! Revoking session.");
+        signOut(auth).then(() => router.push("/login"));
       } else if (!allowedRoles.includes(role || "")) {
         console.log("RouteGuard: Role not allowed. Role:", role, "Allowed:", allowedRoles);
         // Fallback redirection
@@ -32,7 +37,7 @@ export default function RouteGuard({
         setAuthorized(true);
       }
     }
-  }, [user, role, loading, router, allowedRoles, authorized]);
+  }, [user, role, loading, isEmailVerified, router, allowedRoles, authorized]);
 
   if (loading || !authorized) {
     return (

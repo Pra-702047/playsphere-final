@@ -1,20 +1,25 @@
-
 "use client";
 
 import { useState } from "react";
 import { registerUser } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import OTPVerificationForm from "@/components/auth/OTPVerificationForm";
+import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
 
+  // "REGISTER" | "OTP"
+  const [step, setStep] = useState<"REGISTER" | "OTP">("REGISTER");
+  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("player");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [uid, setUid] = useState("");
 
   const handleRegister = async (
     e: React.FormEvent<HTMLFormElement>
@@ -41,6 +46,7 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
+      // 1. Create Firebase Auth User (Client Side)
       const result = await registerUser(
         name,
         email,
@@ -48,9 +54,24 @@ export default function RegisterPage() {
         role
       );
 
-      if (result.success) {
-        alert("Account created successfully!");
-        router.push("/login");
+      if (result.success && result.user?.uid) {
+        setUid(result.user.uid);
+        
+        // 2. Trigger Backend OTP Email
+        const otpRes = await fetch("/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, uid: result.user.uid }),
+        });
+        
+        const otpData = await otpRes.json();
+        
+        if (otpData.success) {
+          // Switch to OTP Verification Step
+          setStep("OTP");
+        } else {
+          setError(otpData.error || "Failed to send verification email. Please try logging in to trigger it again.");
+        }
       } else {
         setError(result.message || "Failed to create account");
       }
@@ -65,103 +86,113 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
       <div className="w-full max-w-md bg-zinc-900 rounded-3xl p-8 shadow-2xl border border-zinc-800">
+        
+        {step === "REGISTER" ? (
+          <>
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-white">
+                Create Account
+              </h1>
+              <p className="text-gray-400 mt-2">
+                Join PlaySphere and start booking turfs instantly ⚽
+              </p>
+            </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white">
-            Create Account
-          </h1>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm mb-4 text-center font-medium">
+                ⚠️ {error}
+              </div>
+            )}
 
-          <p className="text-gray-400 mt-2">
-            Join PlaySphere and start booking turfs instantly ⚽
-          </p>
-        </div>
+            <form onSubmit={handleRegister} className="space-y-4">
+              {/* Role Selection */}
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setRole("player")}
+                  className={`flex-1 py-3 rounded-xl font-semibold border transition ${
+                    role === "player"
+                      ? "bg-lime-500 text-black border-lime-500"
+                      : "bg-zinc-800 text-gray-400 border-zinc-700 hover:border-lime-500"
+                  }`}
+                >
+                  ⚽ Player
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("owner")}
+                  className={`flex-1 py-3 rounded-xl font-semibold border transition ${
+                    role === "owner"
+                      ? "bg-lime-500 text-black border-lime-500"
+                      : "bg-zinc-800 text-gray-400 border-zinc-700 hover:border-lime-500"
+                  }`}
+                >
+                  🏟️ Turf Owner
+                </button>
+              </div>
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm mb-4 text-center font-medium">
-            ⚠️ {error}
-          </div>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                disabled={loading}
+              />
+
+              <input
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                disabled={loading}
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                disabled={loading}
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-lime-500 hover:bg-lime-400 disabled:opacity-50 text-black font-bold py-4 rounded-xl transition flex justify-center items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Register"
+                )}
+              </button>
+            </form>
+
+            <p className="text-center text-gray-400 mt-6">
+              Already have an account?{" "}
+              <Link href="/login" className="text-lime-400 hover:text-lime-300">
+                Login
+              </Link>
+            </p>
+          </>
+        ) : (
+          <OTPVerificationForm 
+            email={email} 
+            uid={uid} 
+            onVerified={() => {
+               if (role === "admin") router.push("/admin");
+               else if (role === "owner") router.push("/owner");
+               else router.push("/dashboard");
+            }} 
+          />
         )}
 
-        <form
-          onSubmit={handleRegister}
-          className="space-y-4"
-        >
-          {/* Role Selection */}
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setRole("player")}
-              className={`flex-1 py-3 rounded-xl font-semibold border transition ${
-                role === "player"
-                  ? "bg-lime-500 text-black border-lime-500"
-                  : "bg-zinc-800 text-gray-400 border-zinc-700 hover:border-lime-500"
-              }`}
-            >
-              ⚽ Player
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("owner")}
-              className={`flex-1 py-3 rounded-xl font-semibold border transition ${
-                role === "owner"
-                  ? "bg-lime-500 text-black border-lime-500"
-                  : "bg-zinc-800 text-gray-400 border-zinc-700 hover:border-lime-500"
-              }`}
-            >
-              🏟️ Turf Owner
-            </button>
-          </div>
-
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) =>
-              setName(e.target.value)
-            }
-            className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-          />
-
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition"
-          >
-            {loading
-              ? "Creating Account..."
-              : "Register"}
-          </button>
-        </form>
-
-        <p className="text-center text-gray-400 mt-6">
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="text-lime-400 hover:text-lime-300"
-          >
-            Login
-          </Link>
-        </p>
       </div>
     </div>
   );

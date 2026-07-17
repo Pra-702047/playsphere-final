@@ -20,10 +20,12 @@ const AuthContext = createContext<{
   user: User | null;
   role: string | null;
   loading: boolean;
+  isEmailVerified: boolean;
 }>({
   user: null,
   role: null,
   loading: true,
+  isEmailVerified: false,
 });
 
 export const AuthProvider = ({
@@ -37,6 +39,7 @@ export const AuthProvider = ({
     useState<string | null>(null);
   const [loading, setLoading] =
     useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
     const unsubscribe =
@@ -50,17 +53,33 @@ export const AuthProvider = ({
               
               const userDoc = await docPromise as any;
               
+              let verified = !!currentUser.emailVerified;
+
               if (userDoc && userDoc.exists()) {
-                let fetchedRole = userDoc.data().role || "player";
-                // Normalize legacy or incorrectly created 'user' roles to 'player'
+                const data = userDoc.data();
+                let fetchedRole = data.role || "player";
                 if (fetchedRole === "user") fetchedRole = "player";
                 setRole(fetchedRole);
+                if (data.isEmailVerified) verified = true;
               } else {
                 setRole("player");
               }
+
+              // Fix race condition: If backend updated status but frontend token is stale
+              if (!verified) {
+                try {
+                  await currentUser.reload();
+                  if (currentUser.emailVerified) verified = true;
+                } catch (e) {
+                  console.warn("Failed to reload user", e);
+                }
+              }
+
+              setIsEmailVerified(verified);
             } catch (error) {
               console.error("Error fetching user role:", error);
               setRole("player");
+              setIsEmailVerified(false);
             }
           } else {
             setRole(null);
@@ -74,7 +93,7 @@ export const AuthProvider = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, role, loading }}
+      value={{ user, role, loading, isEmailVerified }}
     >
       {children}
     </AuthContext.Provider>

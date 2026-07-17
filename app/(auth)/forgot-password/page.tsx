@@ -22,15 +22,21 @@ export default function ForgotPasswordPage() {
     setSuccess(false);
 
     try {
-      const res = await resetPassword(email);
-      if (res.success) {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      
+      if (data.success) {
         setSuccess(true);
       } else {
-        setErrorMsg(res.message || "Failed to send reset email.");
+        setErrorMsg(data.error || data.message || "Failed to send reset email.");
       }
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg("An unexpected error occurred. Please try again.");
+      console.error("Forgot Password Error:", err);
+      setErrorMsg("An unexpected network error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
