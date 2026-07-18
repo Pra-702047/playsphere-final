@@ -1,4 +1,5 @@
-import * as admin from "firebase-admin";
+import * as adminDefault from "firebase-admin";
+const admin = adminDefault as any;
 
 export function initAdmin() {
   if (admin.apps.length > 0) return;
