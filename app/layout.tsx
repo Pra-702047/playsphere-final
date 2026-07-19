@@ -18,11 +18,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PlaySphere - Premium Sports Turf Booking",
   description: "Book football, cricket, badminton and box cricket grounds instantly.",
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export default function RootLayout({
