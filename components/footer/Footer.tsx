@@ -113,7 +113,10 @@ export default function Footer() {
 
         {/* copyright */}
         <div className="border-t border-zinc-900 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center text-xs text-zinc-600 gap-4">
-          <p>© {new Date().getFullYear()} PlaySphere. All Rights Reserved.</p>
+          <div className="space-y-1 text-center sm:text-left">
+            <p>© {new Date().getFullYear()} PlaySphere. All Rights Reserved.</p>
+            <p className="text-zinc-700 font-medium">Founded & Developed by Prathmesh Uttarwar & Tejas Deshmukh.</p>
+          </div>
           <div className="flex gap-6">
             <span className="hover:text-zinc-400 cursor-pointer">Terms of Service</span>
             <span className="hover:text-zinc-400 cursor-pointer">Privacy Policy</span>

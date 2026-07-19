@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PlaySphere - Best Sports Turf Booking Platform",
   description: "Book sports turfs online instantly. Find the best football, box cricket, and badminton grounds near you. Premium turf booking experience.",
-  keywords: ["turf booking", "sports turf booking", "book turf online", "football turf near me", "box cricket booking", "badminton court", "PlaySphere", "turf booking app", "Nanded turf"],
-  authors: [{ name: "PlaySphere" }],
+  keywords: ["turf booking", "sports turf booking", "book turf online", "football turf near me", "box cricket booking", "badminton court", "PlaySphere", "turf booking app", "Nanded turf", "Prathmesh Uttarwar", "Tejas Deshmukh", "PlaySphere Founders"],
+  authors: [{ name: "Prathmesh Uttarwar" }, { name: "Tejas Deshmukh" }],
   openGraph: {
     title: "PlaySphere - Book Sports Turfs Instantly",
     description: "Book sports turfs online instantly. Find the best football, box cricket, and badminton grounds near you.",
