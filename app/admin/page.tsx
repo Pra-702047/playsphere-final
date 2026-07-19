@@ -275,6 +275,12 @@ export default function AdminDashboard() {
             >
               🔒 Audit logs
             </Link>
+            <Link
+              href="/admin/locations"
+              className="text-center bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold py-3 px-2 rounded-xl transition text-xs cursor-pointer"
+            >
+              📍 Locations
+            </Link>
           </div>
         </div>
       </div>

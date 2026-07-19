@@ -4,13 +4,29 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import SportsCanvas from "./SportsCanvas";
+import { getAllLocations, LocationData } from "@/services/location.service";
 
 export default function Hero() {
   const router = useRouter();
-  const [location, setLocation] = useState("Nanded, Maharashtra");
+  const [location, setLocation] = useState("");
+  const [locationsList, setLocationsList] = useState<LocationData[]>([]);
   const [sport, setSport] = useState("all");
   const [date, setDate] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    // Fetch available locations
+    const fetchLocations = async () => {
+      const data = await getAllLocations();
+      setLocationsList(data);
+      if (data.length > 0) {
+        setLocation(data[0].name);
+      } else {
+        setLocation("Nanded, Maharashtra"); // fallback
+      }
+    };
+    fetchLocations();
+  }, []);
 
   const titlePart1 = "Find & Book";
   const titlePart2 = "Sports Turfs";
@@ -119,13 +135,27 @@ export default function Hero() {
             <span className="text-zinc-500 text-xl font-bold">📍</span>
             <div className="flex-1">
               <span className="block text-[9px] text-zinc-500 font-bold uppercase tracking-wider leading-none">Enter Location</span>
-              <input
-                type="text"
-                placeholder="Where to play?"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-transparent text-white outline-none placeholder-zinc-550 text-xs font-bold py-1.5"
-              />
+              {locationsList.length > 0 ? (
+                <select
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full bg-transparent text-white outline-none text-xs font-bold py-1.5 cursor-pointer font-bold select-none border-none p-0"
+                >
+                  {locationsList.map((loc) => (
+                    <option key={loc.id} value={loc.name} className="bg-zinc-950 text-white font-bold">
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Where to play?"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full bg-transparent text-white outline-none placeholder-zinc-550 text-xs font-bold py-1.5"
+                />
+              )}
             </div>
           </div>
 
