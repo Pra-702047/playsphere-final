@@ -17,12 +17,11 @@ export default function Stats() {
     const fetchStats = async () => {
       try {
         const data = await getProjectStats();
-        // Fallbacks for realistic metrics if data is 0 or empty
         setStatsData({
-          activePlayers: data.activePlayers > 0 ? data.activePlayers : 2150,
-          verifiedTurfs: data.verifiedTurfs > 0 ? data.verifiedTurfs : 142,
-          citiesListed: data.citiesListed > 0 ? data.citiesListed : 5,
-          averageRating: data.averageRating > 0 ? data.averageRating : 4.8,
+          activePlayers: data.activePlayers,
+          verifiedTurfs: data.verifiedTurfs,
+          citiesListed: data.citiesListed,
+          averageRating: data.averageRating,
         });
       } catch (err) {
         console.error("Failed to fetch stats", err);

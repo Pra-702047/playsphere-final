@@ -19,7 +19,6 @@ export const getProjectStats = async (): Promise<ProjectStats> => {
     const turfsSnapshot = await getDocs(collection(db, "turfs"));
     
     let verifiedTurfs = 0;
-    const citiesSet = new Set<string>();
     let totalRating = 0;
     let ratedTurfsCount = 0;
 
@@ -31,16 +30,6 @@ export const getProjectStats = async (): Promise<ProjectStats> => {
         verifiedTurfs++;
       }
 
-      // Cities Listed (parse location field)
-      const location = data.location;
-      if (location && typeof location === "string") {
-        const parts = location.split(",");
-        const city = parts[parts.length - 1].trim();
-        if (city) {
-          citiesSet.add(city.toLowerCase());
-        }
-      }
-
       // Average Rating (aggregate from turfs with reviews)
       if (data.avgRating && typeof data.avgRating === "number" && data.avgRating > 0) {
         totalRating += data.avgRating;
@@ -48,7 +37,10 @@ export const getProjectStats = async (): Promise<ProjectStats> => {
       }
     });
 
-    const citiesListed = citiesSet.size;
+    // 3. Fetch active cities count
+    const locationsSnapshot = await getCountFromServer(collection(db, "locations"));
+    const citiesListed = locationsSnapshot.data().count;
+
     const averageRating = ratedTurfsCount > 0 ? Number((totalRating / ratedTurfsCount).toFixed(1)) : 0;
 
     return {
