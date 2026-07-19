@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 
 export function initAdmin() {
-  if (admin.apps.length > 0) return;
+  if (admin.apps && admin.apps.length > 0) return;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
