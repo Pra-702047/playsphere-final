@@ -230,7 +230,13 @@ export default function OwnerTurfsPage() {
     setTurfType(turf.turfType || TURF_TYPES[0]);
     setTurfSize(turf.turfSize || TURF_SIZES[0]);
     setSports(turf.sports || []);
-    setAddress(turf.address || { area: "", city: "", state: "", pinCode: "", googleMapLink: "" });
+    setAddress({
+      area: turf.address?.area || "",
+      city: turf.address?.city || "",
+      state: turf.address?.state || "",
+      pinCode: turf.address?.pinCode || "",
+      googleMapLink: turf.address?.googleMapLink || ""
+    });
     setOpeningTime(turf.openingTime || "06:00");
     setClosingTime(turf.closingTime || "23:00");
     setDaysOpen(turf.daysOpen || DAYS_OF_WEEK);
@@ -357,14 +363,14 @@ export default function OwnerTurfsPage() {
               {/* Turf Image */}
               <div
                 className="h-48 bg-cover bg-center bg-zinc-800"
-                style={{ backgroundImage: \`url(${turf.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60'})\` }}
+                style={{ backgroundImage: `url(${turf.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60'})` }}
               />
 
               {/* Turf Content */}
               <div className="p-6 space-y-4 flex-1 flex flex-col justify-between text-left">
                 <div>
                   <h2 className="text-2xl font-bold text-white leading-tight">{turf.name}</h2>
-                  <p className="text-gray-400 text-sm mt-1">📍 {turf.address ? \`\${turf.address.area || turf.address.city}, \${turf.address.state}\` : turf.location}</p>
+                  <p className="text-gray-400 text-sm mt-1">📍 {turf.address ? `\${turf.address.area || turf.address.city}, \${turf.address.state}` : turf.location}</p>
                   <p className="text-lime-400 text-xl font-bold mt-2">₹{turf.price}/hour</p>
                   <p className="text-gray-400 text-sm mt-3 line-clamp-3 leading-relaxed">
                     {turf.description}
@@ -498,7 +504,7 @@ export default function OwnerTurfsPage() {
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Sports Supported *</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
                     {SPORTS_OPTIONS.map(sport => (
-                      <label key={sport} className={\`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${sports.includes(sport) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}\`}>
+                      <label key={sport} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${sports.includes(sport) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-lime-500"
@@ -542,7 +548,7 @@ export default function OwnerTurfsPage() {
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Days Open *</label>
                   <div className="flex flex-wrap gap-3 text-left">
                     {DAYS_OF_WEEK.map(day => (
-                      <label key={day} className={\`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition \${daysOpen.includes(day) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}\`}>
+                      <label key={day} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition \${daysOpen.includes(day) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-lime-500"
@@ -624,7 +630,7 @@ export default function OwnerTurfsPage() {
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Facilities Available *</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
                     {FACILITIES_OPTIONS.map(facility => (
-                      <label key={facility} className={\`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${facilities.includes(facility) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}\`}>
+                      <label key={facility} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${facilities.includes(facility) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-lime-500"
@@ -661,7 +667,7 @@ export default function OwnerTurfsPage() {
                       <div
                         key={idx}
                         className="relative h-24 rounded-xl bg-cover bg-center border border-zinc-800 group overflow-hidden"
-                        style={{ backgroundImage: \`url(${url})\` }}
+                        style={{ backgroundImage: `url(${url})` }}
                       >
                         <button
                           type="button"
@@ -686,9 +692,9 @@ export default function OwnerTurfsPage() {
                     {images.length < 5 && (
                       <label
                         htmlFor="turf-images-uploader"
-                        className={\`h-24 rounded-xl border border-dashed border-zinc-700 hover:border-lime-500/40 bg-zinc-900 flex flex-col items-center justify-center cursor-pointer transition text-zinc-500 hover:text-zinc-300 \${
+                        className={`h-24 rounded-xl border border-dashed border-zinc-700 hover:border-lime-500/40 bg-zinc-900 flex flex-col items-center justify-center cursor-pointer transition text-zinc-500 hover:text-zinc-300 \${
                           uploading ? "pointer-events-none opacity-50" : ""
-                        }\`}
+                        }`}
                       >
                         <span className="text-2xl">📷</span>
                         <span className="text-[10px] uppercase tracking-wider font-bold mt-2">Add Photo</span>
@@ -732,9 +738,9 @@ export default function OwnerTurfsPage() {
                 <button
                   type="submit"
                   disabled={uploading}
-                  className={\`flex-1 bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition shadow-lg shadow-lime-500/15 cursor-pointer text-sm \${
+                  className={`flex-1 bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition shadow-lg shadow-lime-500/15 cursor-pointer text-sm \${
                     uploading ? "opacity-50 cursor-not-allowed" : ""
-                  }\`}
+                  }`}
                 >
                   {uploading ? "Uploading..." : editingTurf ? "Save Changes" : "Create Turf"}
                 </button>

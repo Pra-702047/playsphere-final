@@ -506,7 +506,7 @@ export default function UserDashboard() {
                           <TurfCard
                             id={t.id!}
                             name={t.name}
-                            location={t.location}
+                            location={t.location || (t.address ? `${t.address.area ? t.address.area + ', ' : ''}${t.address.city}, ${t.address.state}` : "")}
                             price={t.price}
                             imageUrl={t.imageUrl}
                             isVerified={t.isVerified}
@@ -576,7 +576,7 @@ export default function UserDashboard() {
                   key={turfItem.id}
                   id={turfItem.id!}
                   name={turfItem.name}
-                  location={turfItem.location}
+                  location={turfItem.location || (turfItem.address ? `${turfItem.address.area ? turfItem.address.area + ', ' : ''}${turfItem.address.city}, ${turfItem.address.state}` : "")}
                   price={turfItem.price}
                   imageUrl={turfItem.imageUrl}
                   isVerified={turfItem.isVerified}
