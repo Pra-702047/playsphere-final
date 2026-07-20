@@ -6,7 +6,7 @@ import { getOwnerTurfs, createTurf, updateTurf, deleteTurf, TurfData } from "@/s
 import { storage } from "@/firebase/storage";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
-const SPORTS_OPTIONS = ["Football", "Cricket", "Box Cricket", "Badminton", "Pickleball", "Padel", "Multi-Sport"];
+const SPORTS_OPTIONS = ["Football", "Cricket", "Box Cricket", "Badminton", "Pickleball", "Padel ball"];
 const TURF_TYPES = ["Football", "Cricket", "Box Cricket", "Badminton", "Pickleball", "Padel", "Multi-Sport"];
 const TURF_SIZES = ["5v5", "6v6", "7v7", "11v11", "Not Applicable"];
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -502,19 +502,23 @@ export default function OwnerTurfsPage() {
 
                 <div>
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Sports Supported *</label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+                  <select
+                    multiple
+                    size={4}
+                    value={sports}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => option.value);
+                      setSports(selected);
+                    }}
+                    className="w-full p-2 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500 custom-scrollbar"
+                  >
                     {SPORTS_OPTIONS.map(sport => (
-                      <label key={sport} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${sports.includes(sport) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 accent-lime-500"
-                          checked={sports.includes(sport)}
-                          onChange={() => toggleArrayItem(sport, sports, setSports)}
-                        />
-                        <span className="text-sm font-medium">{sport}</span>
-                      </label>
+                      <option key={sport} value={sport} className="p-3 hover:bg-zinc-700 rounded-lg mb-1 cursor-pointer text-sm font-medium">
+                        {sport}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                  <p className="text-zinc-500 text-[10px] mt-2 text-left">Hold Ctrl (Windows) or Cmd (Mac) to select multiple sports.</p>
                 </div>
               </div>
 

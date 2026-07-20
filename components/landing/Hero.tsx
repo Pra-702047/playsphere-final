@@ -176,9 +176,11 @@ export default function Hero() {
                 className="w-full bg-transparent text-white outline-none text-xs font-bold py-1.5 cursor-pointer font-bold select-none border-none p-0"
               >
                 <option value="all" className="bg-zinc-950 text-white font-bold">All Sports</option>
-                <option value="Football" className="bg-zinc-950 text-white font-bold">Football</option>
-                <option value="Cricket" className="bg-zinc-950 text-white font-bold">Cricket</option>
-                <option value="Badminton" className="bg-zinc-950 text-white font-bold">Badminton</option>
+                {sportsList.map((s) => (
+                  <option key={s.id} value={s.name} className="bg-zinc-950 text-white font-bold">
+                    {s.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
