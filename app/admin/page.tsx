@@ -281,6 +281,12 @@ export default function AdminDashboard() {
             >
               📍 Locations
             </Link>
+            <Link
+              href="/admin/sports"
+              className="text-center bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold py-3 px-2 rounded-xl transition text-xs cursor-pointer"
+            >
+              ⚽ Sports
+            </Link>
           </div>
         </div>
       </div>

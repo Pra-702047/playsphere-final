@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import SportsCanvas from "./SportsCanvas";
 import { getAllLocations, LocationData } from "@/services/location.service";
-
+import { getAllSports, SportData } from "@/services/sport.service";
 export default function Hero() {
   const router = useRouter();
   const [location, setLocation] = useState("");
   const [locationsList, setLocationsList] = useState<LocationData[]>([]);
+  const [sportsList, setSportsList] = useState<SportData[]>([]);
   const [sport, setSport] = useState("all");
   const [date, setDate] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -25,7 +26,12 @@ export default function Hero() {
         setLocation("Nanded, Maharashtra"); // fallback
       }
     };
+    const fetchSports = async () => {
+      const data = await getAllSports();
+      setSportsList(data);
+    };
     fetchLocations();
+    fetchSports();
   }, []);
 
   const titlePart1 = "Find & Book";
@@ -204,34 +210,7 @@ export default function Hero() {
         </form>
 
         {/* Categories Bar Row */}
-        <div className="fade-up-hero opacity-0 max-w-2xl mx-auto bg-zinc-950/45 border border-zinc-900/60 p-2 rounded-2xl flex flex-wrap items-center justify-center gap-2 text-xs font-bold text-zinc-400 tracking-wide mt-4">
-          <button
-            type="button"
-            onClick={() => setSport("Football")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition duration-300 cursor-pointer ${
-              sport === "Football" ? "bg-zinc-800 text-lime-400 font-black" : "hover:bg-zinc-900 hover:text-white"
-            }`}
-          >
-            <span>⚽</span> Football
-          </button>
-          <button
-            type="button"
-            onClick={() => setSport("Cricket")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition duration-300 cursor-pointer ${
-              sport === "Cricket" ? "bg-zinc-800 text-lime-400 font-black" : "hover:bg-zinc-900 hover:text-white"
-            }`}
-          >
-            <span>🏏</span> Cricket
-          </button>
-          <button
-            type="button"
-            onClick={() => setSport("Badminton")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition duration-300 cursor-pointer ${
-              sport === "Badminton" ? "bg-zinc-800 text-lime-400 font-black" : "hover:bg-zinc-900 hover:text-white"
-            }`}
-          >
-            <span>🏸</span> Badminton
-          </button>
+        <div className="fade-up-hero opacity-0 max-w-3xl mx-auto bg-zinc-950/45 border border-zinc-900/60 p-2 rounded-2xl flex flex-wrap items-center justify-center gap-2 text-xs font-bold text-zinc-400 tracking-wide mt-4">
           <button
             type="button"
             onClick={() => setSport("all")}
@@ -239,8 +218,21 @@ export default function Hero() {
               sport === "all" ? "bg-zinc-800 text-lime-400 font-black" : "hover:bg-zinc-900 hover:text-white"
             }`}
           >
-            <span>🏀</span> Basketball
+            <span>🌟</span> All Sports
           </button>
+          
+          {sportsList.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSport(s.name)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition duration-300 cursor-pointer ${
+                sport === s.name ? "bg-zinc-800 text-lime-400 font-black" : "hover:bg-zinc-900 hover:text-white"
+              }`}
+            >
+              <span>{s.emoji}</span> {s.name}
+            </button>
+          ))}
         </div>
       </div>
 
