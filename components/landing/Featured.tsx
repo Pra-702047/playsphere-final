@@ -61,7 +61,7 @@ export default function Featured() {
               <TurfCard
                 id={turf.id!}
                 name={turf.name}
-                location={turf.location}
+                location={turf.location || (turf.address ? `${turf.address.area ? turf.address.area + ', ' : ''}${turf.address.city}, ${turf.address.state}` : "")}
                 price={turf.price}
                 imageUrl={turf.imageUrl}
                 isVerified={turf.isVerified}

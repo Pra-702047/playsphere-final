@@ -445,7 +445,7 @@ export default function TurfDetailsPage({
                   key={t.id}
                   id={t.id!}
                   name={t.name}
-                  location={t.location}
+                  location={t.location || (t.address ? `${t.address.area ? t.address.area + ', ' : ''}${t.address.city}, ${t.address.state}` : "")}
                   price={t.price}
                   imageUrl={t.imageUrl}
                   isVerified={t.isVerified}
