@@ -167,7 +167,9 @@ export default function Hero() {
 
           {/* Sport Selector */}
           <div className="w-full md:w-52 flex items-center gap-3.5 px-5 py-2 md:py-0 border-b border-zinc-850 md:border-b-0 md:border-r border-zinc-850 text-left">
-            <span className="text-zinc-500 text-xl font-bold">⚽</span>
+            <span className="text-zinc-500 text-xl font-bold">
+              {sport === "all" ? "🌟" : sportsList.find((s) => s.name === sport)?.emoji || "⚽"}
+            </span>
             <div className="flex-1">
               <span className="block text-[9px] text-zinc-500 font-bold uppercase tracking-wider leading-none">Select Sport</span>
               <select
@@ -223,7 +225,7 @@ export default function Hero() {
             <span>🌟</span> All Sports
           </button>
           
-          {sportsList.map((s) => (
+          {sportsList.slice(0, 5).map((s) => (
             <button
               key={s.id}
               type="button"
