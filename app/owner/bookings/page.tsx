@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getOwnerTurfs, TurfData } from "@/services/turf.service";
 import { getOwnerBookings, updateBookingStatus, verifyBookingOTP, getBookingByOTP } from "@/services/booking.service";
+import * as XLSX from "xlsx";
 
 export default function OwnerBookingsPage() {
   const { user } = useAuth();
@@ -111,6 +112,30 @@ export default function OwnerBookingsPage() {
     return matchesTurf && matchesStatus && matchesDate;
   });
 
+  const handleExportDetailedBookings = () => {
+    const exportData = filteredBookings.map((b) => ({
+      "Booking ID": b.id,
+      "Turf Name": b.turfName || "Unnamed Turf",
+      "Player Name": b.playerName,
+      "Mobile": b.mobile,
+      "Email": b.userEmail,
+      "Sport": b.sport,
+      "Date": b.date,
+      "Slot": b.slot,
+      "Number of Players": b.players,
+      "Price (₹)": b.price,
+      "Status": b.status === "checked_in" ? "Checked In" : b.status,
+      "OTP Verified": b.otpVerified ? "Yes" : "No",
+      "Special Notes": b.notes || "None",
+      "Created At": b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : new Date(b.createdAt).toLocaleString(),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Detailed Bookings");
+    XLSX.writeFile(wb, `PlaySphere_Bookings_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -122,9 +147,17 @@ export default function OwnerBookingsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-extrabold text-white">Manage Bookings</h1>
-        <p className="text-gray-400 mt-2">Approve client bookings, manage cancellations, and process refunds.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-extrabold text-white">Manage Bookings</h1>
+          <p className="text-gray-400 mt-2">Approve client bookings, manage cancellations, and process refunds.</p>
+        </div>
+        <button
+          onClick={handleExportDetailedBookings}
+          className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold py-3 px-6 rounded-xl transition cursor-pointer flex items-center gap-2"
+        >
+          <span>📊</span> Export Detailed Data
+        </button>
       </div>
 
       {/* Quick Check-in Verification Card */}

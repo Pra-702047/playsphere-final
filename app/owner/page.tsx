@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getOwnerTurfs, TurfData } from "@/services/turf.service";
 import { getOwnerBookings, updateBookingStatus, verifyBookingOTP } from "@/services/booking.service";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 
 type MonthlyRevenue = {
   month: string;
@@ -65,6 +66,26 @@ export default function OwnerDashboard() {
     }
   };
 
+  const exportSummaryToExcel = () => {
+    const summaryData = [
+      { Metric: "Total Turfs", Value: turfs.length },
+      { Metric: "Total Revenue (₹)", Value: totalRevenue },
+      { Metric: "Total Bookings", Value: totalBookings },
+      { Metric: "Today's Bookings", Value: todaysBookings.length },
+      { Metric: "Upcoming Bookings", Value: upcomingBookings.length },
+      { Metric: "Completed Bookings", Value: completedBookings },
+      { Metric: "Cancelled Bookings", Value: cancelledBookings },
+      { Metric: "Peak Booking Hour", Value: peakHour },
+      { Metric: "Most Booked Sport", Value: mostBookedSport },
+      { Metric: "Today's Occupancy Rate", Value: `${occupancyRate}%` },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(summaryData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Dashboard Summary");
+    XLSX.writeFile(wb, `PlaySphere_Summary_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -73,19 +94,50 @@ export default function OwnerDashboard() {
     );
   }
 
-  // Calculate statistics
+  // --- Advanced Analytics Calculations ---
+  const todayStr = new Date().toISOString().split("T")[0];
+  
   const totalBookings = bookings.length;
   const activeTurfs = turfs.length;
+  
+  const todaysBookings = bookings.filter((b) => b.date === todayStr && b.status !== "cancelled" && b.status !== "rejected" && b.status !== "refunded");
+  const upcomingBookings = bookings.filter((b) => b.date >= todayStr && (b.status === "confirmed" || b.status === "accepted"));
+  const completedBookings = bookings.filter((b) => b.status === "checked_in").length;
+  const cancelledBookings = bookings.filter((b) => ["cancelled", "rejected", "refunded"].includes(b.status)).length;
   const pendingBookings = bookings.filter((b) => b.status === "pending").length;
 
-  const confirmedBookings = bookings.filter(
-    (b) => b.status === "confirmed" || b.status === "accepted"
-  );
+  const validBookingsForRevenue = bookings.filter((b) => ["confirmed", "accepted", "checked_in"].includes(b.status));
+  const totalRevenue = validBookingsForRevenue.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+
+  // Peak Hour & Most Booked Sport
+  const slotCounts: Record<string, number> = {};
+  const sportCounts: Record<string, number> = {};
   
-  const totalRevenue = confirmedBookings.reduce((sum, b) => {
-    const priceVal = typeof b.price === "number" ? b.price : Number(b.price || 0);
-    return sum + (isNaN(priceVal) ? 0 : priceVal);
-  }, 0);
+  validBookingsForRevenue.forEach(b => {
+    if (b.slot) {
+      slotCounts[b.slot] = (slotCounts[b.slot] || 0) + 1;
+    }
+    if (b.sport) {
+      sportCounts[b.sport] = (sportCounts[b.sport] || 0) + 1;
+    }
+  });
+  
+  let peakHour = "N/A";
+  let maxSlotCount = 0;
+  for (const [s, count] of Object.entries(slotCounts)) {
+    if (count > maxSlotCount) { maxSlotCount = count; peakHour = s; }
+  }
+
+  let mostBookedSport = "N/A";
+  let maxSportCount = 0;
+  for (const [s, count] of Object.entries(sportCounts)) {
+    if (count > maxSportCount) { maxSportCount = count; mostBookedSport = s; }
+  }
+
+  // Calculate Today's Occupancy Rate (approx)
+  // Assuming average 12 slots per turf
+  const totalPossibleSlotsToday = activeTurfs * 12; 
+  const occupancyRate = totalPossibleSlotsToday > 0 ? Math.min(100, Math.round((todaysBookings.length / totalPossibleSlotsToday) * 100)) : 0;
 
   // Group revenue by month for SVG chart (Last 6 Months)
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -100,7 +152,7 @@ export default function OwnerDashboard() {
     });
   }
 
-  confirmedBookings.forEach((b) => {
+  validBookingsForRevenue.forEach((b) => {
     let bDate = new Date();
     if (b.date) {
       bDate = new Date(b.date);
@@ -111,12 +163,10 @@ export default function OwnerDashboard() {
     const bMonthName = `${monthNames[bDate.getMonth()]} ${bDate.getFullYear().toString().substring(2)}`;
     const monthObj = last6MonthsData.find((m) => m.month === bMonthName);
     if (monthObj) {
-      const priceVal = typeof b.price === "number" ? b.price : Number(b.price || 0);
-      monthObj.revenue += isNaN(priceVal) ? 0 : priceVal;
+      monthObj.revenue += Number(b.price) || 0;
     }
   });
 
-  // SVG Chart calculation parameters
   const chartHeight = 160;
   const chartWidth = 500;
   const maxRevenue = Math.max(...last6MonthsData.map((d) => d.revenue), 1000);
@@ -126,35 +176,59 @@ export default function OwnerDashboard() {
   return (
     <div className="space-y-10">
       {/* Welcome & Overview Header */}
-      <div>
-        <h1 className="text-4xl font-extrabold text-white">Owner Dashboard</h1>
-        <p className="text-gray-400 mt-2">Manage your sports venues and review bookings metrics in real-time.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-extrabold text-white">Owner Dashboard</h1>
+          <p className="text-gray-400 mt-2">Manage your sports venues, track analytics, and review bookings metrics in real-time.</p>
+        </div>
+        <button
+          onClick={exportSummaryToExcel}
+          className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold py-3 px-6 rounded-xl transition cursor-pointer flex items-center gap-2"
+        >
+          <span>📊</span> Export Summary
+        </button>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-lg">
-          <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Total Revenue</p>
+      {/* Advanced Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Revenue</p>
           <p className="text-3xl font-extrabold text-lime-400 mt-2">₹{totalRevenue.toLocaleString("en-IN")}</p>
-          <span className="text-[12px] text-zinc-500 mt-1 block">From accepted bookings</span>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-lg">
-          <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Total Bookings</p>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Today's Bookings</p>
+          <p className="text-3xl font-extrabold text-white mt-2">{todaysBookings.length}</p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg border-l-lime-500 border-l-4">
+          <p className="text-lime-400 text-xs font-bold uppercase tracking-wider">Upcoming Bookings</p>
+          <p className="text-3xl font-extrabold text-white mt-2">{upcomingBookings.length}</p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Bookings</p>
           <p className="text-3xl font-extrabold text-white mt-2">{totalBookings}</p>
-          <span className="text-[12px] text-zinc-500 mt-1 block">All times booked</span>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-lg">
-          <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Active Turfs</p>
-          <p className="text-3xl font-extrabold text-white mt-2">{activeTurfs}</p>
-          <span className="text-[12px] text-zinc-500 mt-1 block">Listed properties</span>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Occupancy Rate</p>
+          <p className="text-3xl font-extrabold text-amber-400 mt-2">{occupancyRate}%</p>
+        </div>
+        
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Peak Hour</p>
+          <p className="text-2xl font-extrabold text-white mt-3">{peakHour}</p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-lg border-l-lime-500 border-l-4">
-          <p className="text-lime-400 text-sm font-semibold uppercase tracking-wider">Pending Bookings</p>
-          <p className="text-3xl font-extrabold text-white mt-2">{pendingBookings}</p>
-          <span className="text-[12px] text-zinc-500 mt-1 block">Awaiting confirmation</span>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Most Booked Sport</p>
+          <p className="text-2xl font-extrabold text-white mt-3">{mostBookedSport}</p>
+        </div>
+        
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-lg">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Cancelled/Refunded</p>
+          <p className="text-3xl font-extrabold text-red-400 mt-2">{cancelledBookings}</p>
         </div>
       </div>
 
@@ -165,19 +239,17 @@ export default function OwnerDashboard() {
           <h2 className="text-xl font-bold text-white mb-6">Revenue Analytics (Last 6 Months)</h2>
           <div className="w-full overflow-x-auto flex justify-center py-4">
             <svg width={chartWidth} height={chartHeight + 40} className="overflow-visible">
-              {/* Grid lines */}
               <line x1="0" y1={chartHeight} x2={chartWidth} y2={chartHeight} stroke="#27272a" strokeWidth="1" />
               <line x1="0" y1={chartHeight * 0.5} x2={chartWidth} y2={chartHeight * 0.5} stroke="#27272a" strokeDasharray="4 4" />
               <line x1="0" y1="0" x2={chartWidth} y2="0" stroke="#27272a" strokeDasharray="4 4" />
 
               {last6MonthsData.map((d, index) => {
-                const barHeight = (d.revenue / maxRevenue) * chartHeight;
+                const barHeight = (d.revenue / maxRevenue) * chartHeight || 0;
                 const x = index * (barWidth + gap) + 40;
                 const y = chartHeight - barHeight;
 
                 return (
                   <g key={index}>
-                    {/* Bar */}
                     <rect
                       x={x}
                       y={y}
@@ -187,7 +259,6 @@ export default function OwnerDashboard() {
                       rx="4"
                       className="transition-all duration-300 hover:opacity-80 cursor-pointer"
                     />
-                    {/* Revenue Tag */}
                     <text
                       x={x + barWidth / 2}
                       y={y - 8}
@@ -198,7 +269,6 @@ export default function OwnerDashboard() {
                     >
                       {d.revenue > 0 ? `₹${d.revenue}` : ""}
                     </text>
-                    {/* Month Label */}
                     <text
                       x={x + barWidth / 2}
                       y={chartHeight + 20}
@@ -212,7 +282,6 @@ export default function OwnerDashboard() {
                 );
               })}
 
-              {/* Gradient Definition */}
               <defs>
                 <linearGradient id="limeGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#84cc16" />
@@ -226,7 +295,7 @@ export default function OwnerDashboard() {
         {/* Quick Management Tools */}
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white mb-4">Quick Management</h2>
+            <h2 className="text-xl font-bold text-white mb-4">Management Hub</h2>
             <p className="text-gray-400 text-sm mb-6">Easily toggle between updating your turfs catalog, managing booking calendar, or modifying slot restrictions.</p>
           </div>
           <div className="space-y-4">
@@ -234,7 +303,7 @@ export default function OwnerDashboard() {
               href="/owner/turfs"
               className="block text-center w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-4 rounded-xl border border-zinc-700 transition"
             >
-              🏟️ Manage Turfs
+              🏟️ Manage Turfs ({activeTurfs})
             </Link>
             <Link
               href="/owner/bookings"
@@ -244,9 +313,9 @@ export default function OwnerDashboard() {
             </Link>
             <Link
               href="/owner/slots"
-              className="block text-center w-full bg-zinc-800 hover:bg-zinc-700 text-white py-3 px-4 rounded-xl border border-zinc-700 transition"
+              className="block text-center w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-4 rounded-xl border border-zinc-700 transition"
             >
-              ⚙️ Slot & Holiday Settings
+              ⚙️ Slot Settings
             </Link>
           </div>
         </div>
@@ -255,9 +324,9 @@ export default function OwnerDashboard() {
       {/* Pending & Recent Bookings List */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Recent Booking Requests</h2>
-          <Link href="/owner/bookings" className="text-lime-400 text-sm hover:underline">
-            View All Bookings
+          <h2 className="text-xl font-bold text-white">Recent Booking Activity</h2>
+          <Link href="/owner/bookings" className="text-lime-400 text-sm hover:underline font-bold">
+            View All Data →
           </Link>
         </div>
 
@@ -278,25 +347,21 @@ export default function OwnerDashboard() {
               </thead>
               <tbody className="divide-y divide-zinc-800/50">
                 {bookings.slice(0, 5).map((b) => (
-                  <tr key={b.id} className="text-gray-300 text-sm hover:bg-zinc-950/20">
-                    <td className="py-4 px-2 font-semibold text-white">{b.turfName || "Unnamed Turf"}</td>
+                  <tr key={b.id} className="text-gray-300 text-sm hover:bg-zinc-950/20 transition">
+                    <td className="py-4 px-2 font-bold text-white">{b.turfName || "Unnamed Turf"}</td>
                     <td className="py-4 px-2">
-                      <div className="font-medium text-white">{b.playerName}</div>
-                      <div className="text-[12px] text-gray-500">{b.mobile}</div>
-                      {b.otp && (b.status === "confirmed" || b.status === "accepted") && !b.otpVerified && (
-                        <div className="inline-block mt-0.5 bg-lime-500/10 text-lime-400 text-[9px] font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
-                          OTP: {b.otp}
-                        </div>
-                      )}
+                      <div className="font-semibold text-white">{b.playerName}</div>
+                      <div className="text-[11px] text-gray-500 font-mono mt-0.5">{b.mobile}</div>
+                      {b.sport && <div className="text-[10px] text-zinc-400 mt-1 uppercase">⚽ {b.sport}</div>}
                     </td>
                     <td className="py-4 px-2">
-                      <div>📅 {b.date}</div>
-                      <div className="text-[12px] text-lime-400 font-semibold">🕒 {b.slot}</div>
+                      <div className="font-medium text-white">{b.date}</div>
+                      <div className="text-xs text-lime-400 font-bold mt-1">🕒 {b.slot}</div>
                     </td>
-                    <td className="py-4 px-2 font-bold text-white">₹{b.price}</td>
+                    <td className="py-4 px-2 font-bold text-white font-mono">₹{b.price}</td>
                     <td className="py-4 px-2">
                       <span
-                        className={`inline-block px-3 py-1 rounded-full text-[11px] font-semibold ${
+                        className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           b.status === "pending"
                             ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                             : b.status === "confirmed" || b.status === "accepted"
@@ -314,13 +379,13 @@ export default function OwnerDashboard() {
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => handleStatusChange(b.id, "confirmed")}
-                            className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1 rounded-lg text-xs font-bold"
+                            className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
                           >
                             Accept
                           </button>
                           <button
                             onClick={() => handleStatusChange(b.id, "rejected")}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1 rounded-lg text-xs font-bold"
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
                           >
                             Reject
                           </button>
@@ -329,23 +394,17 @@ export default function OwnerDashboard() {
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => handleInlineVerifyOTP(b.id, b.otp || "")}
-                            className="bg-lime-500 hover:bg-lime-400 text-black px-2.5 py-1 rounded-lg text-xs font-bold transition"
+                            className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
                           >
                             Verify OTP
                           </button>
-                          <button
-                            onClick={() => handleStatusChange(b.id, "refunded")}
-                            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-zinc-700 transition"
-                          >
-                            Refund
-                          </button>
                         </div>
                       ) : b.status === "checked_in" ? (
-                        <span className="text-emerald-400 text-xs font-extrabold flex justify-end items-center gap-1">
-                          ✅ Checked In
+                        <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider flex justify-end items-center gap-1">
+                          ✅ Verified
                         </span>
                       ) : (
-                        <span className="text-zinc-500 text-xs">No Action</span>
+                        <span className="text-zinc-600 text-xs font-semibold">Closed</span>
                       )}
                     </td>
                   </tr>

@@ -248,8 +248,17 @@ export default function TurfDetailsPage({
                     {/* OVERVIEW TAB */}
                     {activeTab === "overview" && (
                       <div className="space-y-4">
-                        <h1 className="text-4xl font-extrabold text-white">{turf.name}</h1>
-                        <p className="text-gray-400 text-sm">📍 {turf.location}</p>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h1 className="text-4xl font-extrabold text-white">{turf.name}</h1>
+                            {turf.businessName && (
+                              <p className="text-lime-400 font-semibold text-sm mt-1">by {turf.businessName}</p>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          📍 {turf.address ? `${turf.address.area ? turf.address.area + ', ' : ''}${turf.address.city}, ${turf.address.state} - ${turf.address.pinCode}` : turf.location}
+                        </p>
                         <div className="flex items-center gap-1.5 mt-2">
                           <span className="text-lime-400 font-extrabold text-lg">
                             {turf.avgRating ? `⭐ ${turf.avgRating}` : "⭐ New Venue"}
@@ -258,9 +267,46 @@ export default function TurfDetailsPage({
                             {turf.ratingCount ? `(${turf.ratingCount} reviews)` : ""}
                           </span>
                         </div>
+                        
+                        {/* Sports Supported */}
+                        {turf.sports && turf.sports.length > 0 && (
+                          <div className="pt-4 mt-4 border-t border-zinc-900">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Sports Supported</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {turf.sports.map(sport => (
+                                <span key={sport} className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300 font-medium">
+                                  ⚽ {sport}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Operating Hours */}
+                        <div className="pt-4 mt-4 border-t border-zinc-900 grid grid-cols-2 gap-4">
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Operating Hours</h3>
+                            <p className="text-white font-medium">{turf.openingTime || '06:00'} to {turf.closingTime || '23:00'}</p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Days Open</h3>
+                            <p className="text-white font-medium text-sm">{(turf.daysOpen || []).join(', ')}</p>
+                          </div>
+                        </div>
+
                         <p className="text-zinc-300 text-base leading-relaxed pt-4 border-t border-zinc-900 mt-6">
                           {turf.description}
                         </p>
+                        
+                        {/* Booking Rules */}
+                        {turf.bookingRules && (
+                          <div className="pt-4 mt-4 border-t border-zinc-900">
+                            <h3 className="text-sm font-bold text-red-400 uppercase tracking-wider mb-3">Booking Rules</h3>
+                            <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                              <p className="text-zinc-300 text-sm whitespace-pre-wrap">{turf.bookingRules}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -269,7 +315,7 @@ export default function TurfDetailsPage({
                       <div className="space-y-6">
                         <h2 className="text-xl font-bold">Venue Amenities</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {turf.amenities?.map((facility, idx) => (
+                          {(turf.facilities || turf.amenities || []).map((facility, idx) => (
                             <div
                               key={idx}
                               className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center text-zinc-300 font-bold text-sm"
@@ -285,11 +331,20 @@ export default function TurfDetailsPage({
                     {activeTab === "map" && (
                       <div className="space-y-4">
                         <h2 className="text-xl font-bold">Directions & Address</h2>
-                        <p className="text-sm text-zinc-400">📍 Location: {turf.location}</p>
-                        {/* Map placeholder */}
-                        <div className="h-64 bg-zinc-900/80 border border-zinc-850 rounded-2xl flex items-center justify-center text-zinc-500 text-sm italic">
-                          🗺️ Google Maps Navigation Integrated
-                        </div>
+                        <p className="text-sm text-zinc-400">📍 Location: {turf.address ? `${turf.address.area ? turf.address.area + ', ' : ''}${turf.address.city}, ${turf.address.state} - ${turf.address.pinCode}` : turf.location}</p>
+                        {/* Map placeholder or real map if available */}
+                        {turf.address?.googleMapLink ? (
+                          <div className="h-64 bg-zinc-900/80 border border-zinc-850 rounded-2xl flex flex-col items-center justify-center text-zinc-500 text-sm gap-3">
+                            <span className="text-4xl">🗺️</span>
+                            <a href={turf.address.googleMapLink} target="_blank" rel="noreferrer" className="text-lime-400 hover:underline font-semibold">
+                              Open in Google Maps
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="h-64 bg-zinc-900/80 border border-zinc-850 rounded-2xl flex items-center justify-center text-zinc-500 text-sm italic">
+                            🗺️ Google Maps Navigation Integrated
+                          </div>
+                        )}
                       </div>
                     )}
 

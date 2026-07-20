@@ -9,10 +9,34 @@ import { TurfData } from "@/services/turf.service";
 import Dialog from "@/components/ui/Dialog";
 import { useToast } from "@/context/ToastContext";
 
-const DEFAULT_TIME_SLOTS = Array.from({ length: 24 }, (_, i) => {
-  const hour = i.toString().padStart(2, "0");
-  return `${hour}:00`;
-});
+const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function generateTimeSlots(openingTime: string = "06:00", closingTime: string = "23:00", durationMin: number = 60, bufferMin: number = 0, dateStr: string): string[] {
+  const slots: string[] = [];
+  if (!dateStr) return slots;
+  
+  const now = new Date();
+  const isToday = dateStr === now.toISOString().split("T")[0];
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + (m || 0);
+  };
+  
+  let current = parseTime(openingTime);
+  const end = parseTime(closingTime);
+  
+  while (current + durationMin <= end) {
+    if (!isToday || current > currentMinutes) {
+      const h = Math.floor(current / 60).toString().padStart(2, "0");
+      const m = (current % 60).toString().padStart(2, "0");
+      slots.push(`${h}:${m}`);
+    }
+    current += durationMin + bufferMin;
+  }
+  return slots;
+}
 
 export default function BookingForm({ turf }: { turf: TurfData }) {
   const { showToast } = useToast();
@@ -20,7 +44,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
   const [playerName, setPlayerName] = useState("");
   const [mobile, setMobile] = useState("");
   const [players, setPlayers] = useState(10);
-  const [sport, setSport] = useState("Football");
+  const [sport, setSport] = useState(turf.sports?.[0] || "Football");
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState("");
   const [slot, setSlot] = useState("");
@@ -79,13 +103,22 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
 
   // Determine dynamic pricing and slot availability
   const isHoliday = date ? turf.holidays?.includes(date) : false;
+  const selectedDayName = date ? DAYS_OF_WEEK[new Date(date).getDay()] : "";
+  const isDayClosed = date && turf.daysOpen && turf.daysOpen.length > 0 ? !turf.daysOpen.includes(selectedDayName) : false;
+  const isClosed = isHoliday || isDayClosed;
+
   const specialPrice = date ? turf.specialRates?.[date] : undefined;
-  const currentHourlyPrice = specialPrice !== undefined ? specialPrice : turf.price;
-  const finalPrice = Math.max(0, currentHourlyPrice - discountAmount);
+  // Calculate price based on duration if duration is > 60 mins. For now assume turf.price is per slot.
+  // The user specifies hourly price, so if slot is 90 mins, price is price * 1.5
+  const durationMultiplier = (turf.slotDuration || 60) / 60;
+  const currentSlotPrice = (specialPrice !== undefined ? specialPrice : turf.price) * durationMultiplier;
+  const finalPrice = Math.max(0, currentSlotPrice - discountAmount);
   
   const ownerBlockedSlots = date ? (turf.blockedSlots?.[date] || []) : [];
   const unavailableSlots = [...ownerBlockedSlots, ...bookedSlots];
-  const availableSlots = DEFAULT_TIME_SLOTS.filter((s) => !unavailableSlots.includes(s));
+  
+  const generatedSlots = generateTimeSlots(turf.openingTime, turf.closingTime, turf.slotDuration, turf.bufferTime, date);
+  const availableSlots = generatedSlots.filter((s) => !unavailableSlots.includes(s));
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -127,7 +160,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
       
       let discount = 0;
       if (couponData.discountType === "percentage") {
-        discount = Math.round((currentHourlyPrice * couponData.discountValue) / 100);
+        discount = Math.round((currentSlotPrice * couponData.discountValue) / 100);
       } else {
         discount = couponData.discountValue;
       }
@@ -191,7 +224,6 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
           createdAt: new Date(),
         });
 
-        // Increment coupon count if applied
         if (appliedCoupon && appliedCoupon.id) {
           const couponRef = doc(db, "coupons", appliedCoupon.id);
           await updateDoc(couponRef, {
@@ -214,6 +246,9 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
           read: false,
           createdAt: new Date(),
         });
+        
+        // Optimistically update booked slots
+        setBookedSlots(prev => [...prev, slot]);
       } catch (e) {
         console.error("Error creating transactional records:", e);
       }
@@ -222,7 +257,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
       setPlayerName("");
       setMobile("");
       setPlayers(10);
-      setSport("Football");
+      setSport(turf.sports?.[0] || "Football");
       setNotes("");
       setDate("");
       setSlot("");
@@ -276,8 +311,8 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
       return;
     }
 
-    if (isHoliday) {
-      showToast("Selected date is a holiday. Booking is unavailable.", "error");
+    if (isClosed) {
+      showToast("Selected date is closed. Booking is unavailable.", "error");
       return;
     }
 
@@ -304,6 +339,9 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
       if (conflicts.length > 0) {
         showToast("This slot was just booked by another player! Please select another slot.", "error");
         setLoading(false);
+        // Optimistically update slots
+        setBookedSlots(prev => [...prev, slot]);
+        setSlot("");
         return;
       }
     } catch (e) {
@@ -323,7 +361,6 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
         return;
       }
 
-      // 1. Create payment order server-side
       let orderId = "";
       try {
         const orderRes = await fetch("/api/payment/order", {
@@ -331,7 +368,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ turfId: turf.id, date, couponId: appliedCoupon?.id || null }),
+          body: JSON.stringify({ turfId: turf.id, date, couponId: appliedCoupon?.id || null, amount: finalPrice }),
         });
         const orderData = await orderRes.json();
         if (orderData.success) {
@@ -348,18 +385,16 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
         return;
       }
 
-      // 2. Configure official Razorpay Checkout options
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: finalPrice * 100,
         currency: "INR",
         name: "PlaySphere",
-        description: `Hourly booking for ${turf.name}`,
+        description: `Booking for ${turf.name}`,
         order_id: orderId,
         handler: async function (response: any) {
           setLoading(true);
           try {
-            // Verify payment signature server-side
             const verifyRes = await fetch("/api/payment/verify", {
               method: "POST",
               headers: {
@@ -398,13 +433,14 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
               setPlayerName("");
               setMobile("");
               setPlayers(10);
-              setSport("Football");
+              setSport(turf.sports?.[0] || "Football");
               setNotes("");
               setDate("");
               setSlot("");
               setAppliedCoupon(null);
               setCouponCode("");
               setDiscountAmount(0);
+              setBookedSlots(prev => [...prev, slot]);
             } else {
               showToast(verifyResult.message || "Payment verification failed", "error");
             }
@@ -457,31 +493,31 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
           />
         </div>
 
-        {/* Holiday Warning or Pricing Display */}
+        {/* Holiday / Closed Warning or Pricing Display */}
         {date && (
           <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 text-sm">
-            {isHoliday ? (
-              <p className="text-red-400 font-semibold text-center">🏖️ Closed: Selected date is marked as a Holiday.</p>
+            {isClosed ? (
+              <p className="text-red-400 font-semibold text-center">🏖️ Closed: Selected date is not available for booking.</p>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-gray-400 font-medium">Hourly Price:</span>
+                <span className="text-gray-400 font-medium">Slot Price ({turf.slotDuration || 60} mins):</span>
                 <span className="text-lime-400 text-lg font-bold">
-                  ₹{currentHourlyPrice}/hr {specialPrice !== undefined && "(Special RateApplied)"}
+                  ₹{currentSlotPrice} {specialPrice !== undefined && "(Special Rate)"}
                 </span>
               </div>
             )}
           </div>
         )}
 
-        {!isHoliday && date && (
+        {!isClosed && date && (
           <>
-            {/* Slot Selector - 24 Hour Grid Cards */}
+            {/* Slot Selector - Generated Dynamically */}
             <div>
               <label className="block text-gray-400 text-xs font-semibold mb-3">
                 Select Time Slot * {checkingBookings && <span className="text-zinc-500 text-[10px] animate-pulse">(checking slots...)</span>}
               </label>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[260px] overflow-y-auto pr-1">
-                {DEFAULT_TIME_SLOTS.map((s) => {
+                {generatedSlots.map((s) => {
                   const isBooked = unavailableSlots.includes(s);
                   const isSelected = slot === s;
                   
@@ -491,15 +527,15 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                       type="button"
                       disabled={isBooked}
                       onClick={() => setSlot(s)}
-                      className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center min-h-[48px] ${
+                      className={\`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center min-h-[48px] \${
                         isBooked
                           ? "bg-zinc-950/60 border-zinc-900/60 text-zinc-550 cursor-not-allowed opacity-40"
                           : isSelected
                             ? "bg-lime-500 border-lime-500 text-black font-extrabold shadow-lg shadow-lime-500/10 scale-[1.02]"
                             : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-lime-500/40 hover:text-white cursor-pointer"
-                      }`}
+                      }\`}
                     >
-                      <span className={`text-xs font-bold tracking-tight ${isBooked ? "line-through text-zinc-650" : ""}`}>
+                      <span className={\`text-xs font-bold tracking-tight \${isBooked ? "line-through text-zinc-650" : ""}\`}>
                         {s}
                       </span>
                       {isBooked ? (
@@ -507,7 +543,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                           Booked
                         </span>
                       ) : (
-                        <span className={`text-[7px] uppercase tracking-wider mt-0.5 ${isSelected ? "text-black/80 font-bold" : "text-lime-400/80"}`}>
+                        <span className={\`text-[7px] uppercase tracking-wider mt-0.5 \${isSelected ? "text-black/80 font-bold" : "text-lime-400/80"}\`}>
                           Available
                         </span>
                       )}
@@ -559,18 +595,20 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
               </div>
             </div>
 
-            <div>
-              <label className="block text-gray-400 text-xs font-semibold mb-2">Select Sport</label>
-              <select
-                value={sport}
-                onChange={(e) => setSport(e.target.value)}
-                className="w-full p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-              >
-                <option>Football</option>
-                <option>Cricket</option>
-                <option>Badminton</option>
-              </select>
-            </div>
+            {turf.sports && turf.sports.length > 0 && (
+              <div>
+                <label className="block text-gray-400 text-xs font-semibold mb-2">Select Sport</label>
+                <select
+                  value={sport}
+                  onChange={(e) => setSport(e.target.value)}
+                  className="w-full p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                >
+                  {turf.sports.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-gray-400 text-xs font-semibold mb-2">Special Request (Optional)</label>
@@ -606,8 +644,8 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
               {/* Display pricing updates */}
               <div className="bg-zinc-950/40 p-4 rounded-xl border border-zinc-850 mt-4 space-y-2 text-xs text-zinc-400">
                 <div className="flex justify-between">
-                  <span>Hourly Slot Rate</span>
-                  <span className="font-semibold text-zinc-350">₹{currentHourlyPrice}</span>
+                  <span>Slot Rate</span>
+                  <span className="font-semibold text-zinc-350">₹{currentSlotPrice}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-lime-400 font-medium">
@@ -650,23 +688,22 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
             </div>
           </div>
 
-          {/* Method Tab selection */}
           <div className="flex bg-zinc-950 p-1.5 rounded-2xl border border-zinc-900 gap-2 text-xs font-black uppercase tracking-wider">
             <button
               type="button"
               onClick={() => setPaymentMethod("upi")}
-              className={`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer ${
+              className={\`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer \${
                 paymentMethod === "upi" ? "bg-lime-400 text-black font-black" : "text-zinc-400 hover:text-white"
-              }`}
+              }\`}
             >
               📱 UPI
             </button>
             <button
               type="button"
               onClick={() => setPaymentMethod("card")}
-              className={`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer ${
+              className={\`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer \${
                 paymentMethod === "card" ? "bg-lime-400 text-black font-black" : "text-zinc-400 hover:text-white"
-              }`}
+              }\`}
             >
               💳 Card
             </button>
@@ -681,22 +718,22 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                     <button
                       type="button"
                       onClick={() => setUpiProvider("gpay")}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold ${
+                      className={\`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold \${
                         upiProvider === "gpay"
                           ? "border-lime-500 bg-lime-500/5 text-white"
                           : "border-zinc-800 hover:border-zinc-700 text-zinc-400"
-                      }`}
+                      }\`}
                     >
                       <span>🔵</span> Google Pay
                     </button>
                     <button
                       type="button"
                       onClick={() => setUpiProvider("phonepe")}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold ${
+                      className={\`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold \${
                         upiProvider === "phonepe"
                           ? "border-lime-500 bg-lime-500/5 text-white"
                           : "border-zinc-800 hover:border-zinc-700 text-zinc-400"
-                      }`}
+                      }\`}
                     >
                       <span>🟣</span> PhonePe
                     </button>
@@ -734,7 +771,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                     maxLength={19}
                     placeholder="4111 1111 1111 1111"
                     value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\s?/g, '').replace(/(\d{4})/g, '$1 ').trim())}
+                    onChange={(e) => setCardNumber(e.target.value.replace(/\\s?/g, '').replace(/(\\d{4})/g, '$1 ').trim())}
                     className="w-full p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500 text-sm font-mono"
                   />
                 </div>
@@ -789,4 +826,3 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
     </div>
   );
 }
-

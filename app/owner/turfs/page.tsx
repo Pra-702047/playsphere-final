@@ -6,7 +6,12 @@ import { getOwnerTurfs, createTurf, updateTurf, deleteTurf, TurfData } from "@/s
 import { storage } from "@/firebase/storage";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
-// Compress and convert file to Base64 so we can fallback to Firestore storage if Firebase Storage has CORS or upload errors
+const SPORTS_OPTIONS = ["Football", "Cricket", "Box Cricket", "Badminton", "Pickleball", "Padel", "Multi-Sport"];
+const TURF_TYPES = ["Football", "Cricket", "Box Cricket", "Badminton", "Pickleball", "Padel", "Multi-Sport"];
+const TURF_SIZES = ["5v5", "6v6", "7v7", "11v11", "Not Applicable"];
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const FACILITIES_OPTIONS = ["Parking", "Washroom", "Flood Lights", "Drinking Water", "Cafeteria", "Changing Room", "First Aid", "CCTV", "Locker Room", "Seating Area", "Shower", "WiFi"];
+
 const compressAndConvertToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -38,12 +43,10 @@ const compressAndConvertToBase64 = (file: File): Promise<string> => {
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, width, height);
 
-        // Convert to quality 0.7 jpeg
         const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
         resolve(dataUrl);
       };
       img.onerror = () => {
-        // Fallback to raw base64 if canvas drawing fails
         resolve(event.target?.result as string);
       };
     };
@@ -63,14 +66,23 @@ export default function OwnerTurfsPage() {
   const [editingTurf, setEditingTurf] = useState<TurfData | null>(null);
 
   // Form State
+  const [businessName, setBusinessName] = useState("");
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
+  const [turfType, setTurfType] = useState(TURF_TYPES[0]);
+  const [turfSize, setTurfSize] = useState(TURF_SIZES[0]);
+  const [sports, setSports] = useState<string[]>([]);
+  const [address, setAddress] = useState({ area: "", city: "", state: "", pinCode: "", googleMapLink: "" });
+  const [openingTime, setOpeningTime] = useState("06:00");
+  const [closingTime, setClosingTime] = useState("23:00");
+  const [daysOpen, setDaysOpen] = useState<string[]>(DAYS_OF_WEEK);
   const [price, setPrice] = useState(1000);
+  const [facilities, setFacilities] = useState<string[]>([]);
+  const [bookingRules, setBookingRules] = useState("");
+  
   const [images, setImages] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState("");
-  const [amenities, setAmenities] = useState<string>("Parking, Flood Lights, Washroom, Drinking Water");
 
   useEffect(() => {
     if (!user) return;
@@ -102,24 +114,18 @@ export default function OwnerTurfsPage() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-
-      // Validate formats
       const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
       if (!validTypes.includes(file.type)) {
         alert(`${file.name} has an invalid format. Please upload JPG, JPEG, PNG, or WEBP.`);
         continue;
       }
-
-      // Validate size (5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert(`${file.name} exceeds the 5MB size limit.`);
         continue;
       }
 
-      // Unique file naming
       const fileId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const storageRef = ref(storage, `owners/${user?.uid}/turfs/${editingTurf?.id || "temp"}/${fileId}`);
-
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       try {
@@ -128,13 +134,9 @@ export default function OwnerTurfsPage() {
             "state_changed",
             (snapshot) => {
               const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress((prev) => ({
-                ...prev,
-                [file.name]: Math.round(pct),
-              }));
+              setUploadProgress((prev) => ({ ...prev, [file.name]: Math.round(pct) }));
             },
             (err) => {
-              console.warn("Firebase Storage upload error, falling back to local Base64:", err);
               reject(err);
             },
             async () => {
@@ -150,7 +152,6 @@ export default function OwnerTurfsPage() {
           );
         });
       } catch (err) {
-        // Fallback: Convert to Base64 (with local compression)
         try {
           const base64Data = await compressAndConvertToBase64(file);
           if (base64Data) {
@@ -159,7 +160,6 @@ export default function OwnerTurfsPage() {
             alert(`Failed to upload ${file.name}`);
           }
         } catch (compressError) {
-          console.error("Local compression error:", compressError);
           alert(`Failed to upload ${file.name}`);
         } finally {
           setUploadProgress((prev) => {
@@ -170,15 +170,11 @@ export default function OwnerTurfsPage() {
         }
       }
     }
-
     setUploading(false);
   };
 
-
   const handleDeleteImage = async (url: string) => {
     setImages((prev) => prev.filter((img) => img !== url));
-
-    // Cleanup in Firebase Storage if relevant
     if (url.includes("firebasestorage.googleapis.com")) {
       try {
         const storageRef = ref(storage, url);
@@ -208,53 +204,92 @@ export default function OwnerTurfsPage() {
 
   const handleOpenAddModal = () => {
     setEditingTurf(null);
+    setBusinessName("");
     setName("");
-    setLocation("");
+    setTurfType(TURF_TYPES[0]);
+    setTurfSize(TURF_SIZES[0]);
+    setSports([]);
+    setAddress({ area: "", city: "", state: "", pinCode: "", googleMapLink: "" });
+    setOpeningTime("06:00");
+    setClosingTime("23:00");
+    setDaysOpen(DAYS_OF_WEEK);
     setPrice(1000);
+    setFacilities([]);
+    setBookingRules("");
     setImages([]);
     setUploadProgress({});
     setUploading(false);
     setDescription("");
-    setAmenities("Parking, Flood Lights, Washroom, Drinking Water");
     setModalOpen(true);
   };
 
   const handleOpenEditModal = (turf: TurfData) => {
     setEditingTurf(turf);
+    setBusinessName(turf.businessName || "");
     setName(turf.name);
-    setLocation(turf.location);
+    setTurfType(turf.turfType || TURF_TYPES[0]);
+    setTurfSize(turf.turfSize || TURF_SIZES[0]);
+    setSports(turf.sports || []);
+    setAddress(turf.address || { area: "", city: "", state: "", pinCode: "", googleMapLink: "" });
+    setOpeningTime(turf.openingTime || "06:00");
+    setClosingTime(turf.closingTime || "23:00");
+    setDaysOpen(turf.daysOpen || DAYS_OF_WEEK);
     setPrice(turf.price);
+    setFacilities(turf.facilities || turf.amenities || []);
+    setBookingRules(turf.bookingRules || "");
     setImages(turf.images || (turf.imageUrl ? [turf.imageUrl] : []));
     setUploadProgress({});
     setUploading(false);
     setDescription(turf.description || "");
-    setAmenities(turf.amenities?.join(", ") || "Parking, Flood Lights, Washroom, Drinking Water");
     setModalOpen(true);
+  };
+
+  const toggleArrayItem = (item: string, array: string[], setArray: (val: string[]) => void) => {
+    if (array.includes(item)) {
+      setArray(array.filter(i => i !== item));
+    } else {
+      setArray([...array, item]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    if (!name || !location || !price || !description) {
-      alert("Please fill all required fields");
+    if (!businessName || !name || !turfType || !turfSize || sports.length === 0) {
+      alert("Please fill all required business and turf details.");
+      return;
+    }
+    if (!openingTime || !closingTime || daysOpen.length === 0) {
+      alert("Please specify operating hours and days open.");
+      return;
+    }
+    if (!address.city || !address.state || !address.pinCode) {
+      alert("City, State, and PIN Code are required.");
+      return;
+    }
+    if (facilities.length === 0 || images.length === 0 || !description) {
+      alert("Please add at least one facility, one image, and a description.");
       return;
     }
 
-    const parsedAmenities = amenities
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-
     const payload = {
+      businessName,
       name,
-      location,
+      turfType,
+      turfSize,
+      sports,
+      address,
+      openingTime,
+      closingTime,
+      daysOpen,
       price: Number(price),
+      facilities,
+      bookingRules,
       imageUrl: images[0] || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60",
       images,
       description,
       ownerId: user.uid,
-      amenities: parsedAmenities,
     };
 
     try {
@@ -322,24 +357,24 @@ export default function OwnerTurfsPage() {
               {/* Turf Image */}
               <div
                 className="h-48 bg-cover bg-center bg-zinc-800"
-                style={{ backgroundImage: `url(${turf.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60'})` }}
+                style={{ backgroundImage: \`url(${turf.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60'})\` }}
               />
 
               {/* Turf Content */}
               <div className="p-6 space-y-4 flex-1 flex flex-col justify-between text-left">
                 <div>
                   <h2 className="text-2xl font-bold text-white leading-tight">{turf.name}</h2>
-                  <p className="text-gray-400 text-sm mt-1">📍 {turf.location}</p>
+                  <p className="text-gray-400 text-sm mt-1">📍 {turf.address ? \`\${turf.address.area || turf.address.city}, \${turf.address.state}\` : turf.location}</p>
                   <p className="text-lime-400 text-xl font-bold mt-2">₹{turf.price}/hour</p>
                   <p className="text-gray-400 text-sm mt-3 line-clamp-3 leading-relaxed">
                     {turf.description}
                   </p>
                 </div>
 
-                {/* Amenities pills */}
+                {/* Facilities pills */}
                 <div className="pt-2">
                   <div className="flex flex-wrap gap-2">
-                    {turf.amenities?.slice(0, 3).map((a, i) => (
+                    {(turf.facilities || turf.amenities || []).slice(0, 3).map((a, i) => (
                       <span
                         key={i}
                         className="bg-zinc-800 text-zinc-300 text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded"
@@ -347,9 +382,9 @@ export default function OwnerTurfsPage() {
                         {a}
                       </span>
                     ))}
-                    {(turf.amenities?.length || 0) > 3 && (
+                    {((turf.facilities || turf.amenities)?.length || 0) > 3 && (
                       <span className="bg-zinc-800 text-zinc-400 text-[10px] font-bold px-2 py-1 rounded">
-                        +{(turf.amenities?.length || 0) - 3} more
+                        +{((turf.facilities || turf.amenities)?.length || 0) - 3} more
                       </span>
                     )}
                   </div>
@@ -379,138 +414,314 @@ export default function OwnerTurfsPage() {
       {/* Add/Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setModalOpen(false)}
-              className="absolute top-6 right-6 text-zinc-500 hover:text-white transition text-xl cursor-pointer"
+              className="absolute top-6 right-6 text-zinc-500 hover:text-white transition text-xl cursor-pointer bg-zinc-800 hover:bg-zinc-700 w-8 h-8 rounded-full flex items-center justify-center"
             >
               ✕
             </button>
 
-            <h2 className="text-3xl font-extrabold text-white mb-6 text-left">
+            <h2 className="text-3xl font-extrabold text-white mb-8 text-left border-b border-zinc-800 pb-4">
               {editingTurf ? "Edit Turf Details" : "Add New Turf"}
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="text-left">
-                <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Camp Nou Turf"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                <div>
-                  <label className="block text-gray-400 text-sm font-semibold mb-2">Location *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Bandra West, Mumbai"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 text-sm font-semibold mb-2">Hourly Price (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="100"
-                    placeholder="e.g. 1500"
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-                  />
+            <form onSubmit={handleSubmit} className="space-y-10">
+              {/* Section 1: Business Information */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-lime-400">1. Business Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Business Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. PlayZone Sports Arena"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Camp Nou Turf"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Multi-Image Upload Section */}
-              <div className="text-left space-y-3">
-                <label className="block text-gray-400 text-sm font-semibold">Turf Images (Up to 5) *</label>
+              {/* Section 2: Turf Details */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-lime-400">2. Turf Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Type *</label>
+                    <select
+                      value={turfType}
+                      onChange={(e) => setTurfType(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    >
+                      {TURF_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Size *</label>
+                    <select
+                      value={turfSize}
+                      onChange={(e) => setTurfSize(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    >
+                      {TURF_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Hourly Price (₹) *</label>
+                    <input
+                      type="number"
+                      required
+                      min="100"
+                      placeholder="e.g. 1500"
+                      value={price}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Sports Supported *</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+                    {SPORTS_OPTIONS.map(sport => (
+                      <label key={sport} className={\`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${sports.includes(sport) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}\`}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-lime-500"
+                          checked={sports.includes(sport)}
+                          onChange={() => toggleArrayItem(sport, sports, setSports)}
+                        />
+                        <span className="text-sm font-medium">{sport}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Operating Hours */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-lime-400">3. Operating Hours</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Opening Time *</label>
+                    <input
+                      type="time"
+                      required
+                      value={openingTime}
+                      onChange={(e) => setOpeningTime(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Closing Time *</label>
+                    <input
+                      type="time"
+                      required
+                      value={closingTime}
+                      onChange={(e) => setClosingTime(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Days Open *</label>
+                  <div className="flex flex-wrap gap-3 text-left">
+                    {DAYS_OF_WEEK.map(day => (
+                      <label key={day} className={\`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition \${daysOpen.includes(day) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}\`}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-lime-500"
+                          checked={daysOpen.includes(day)}
+                          onChange={() => toggleArrayItem(day, daysOpen, setDaysOpen)}
+                        />
+                        <span className="text-sm font-medium">{day.substring(0, 3)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Address */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-lime-400">4. Full Address</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Area / Locality</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Bandra West"
+                      value={address.area}
+                      onChange={(e) => setAddress({ ...address, area: e.target.value })}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">City *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Mumbai"
+                      value={address.city}
+                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">State *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Maharashtra"
+                      value={address.state}
+                      onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">PIN Code *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 400050"
+                      value={address.pinCode}
+                      onChange={(e) => setAddress({ ...address, pinCode: e.target.value })}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-gray-400 text-sm font-semibold mb-2">Google Maps Link (Optional)</label>
+                    <input
+                      type="url"
+                      placeholder="https://maps.google.com/..."
+                      value={address.googleMapLink}
+                      onChange={(e) => setAddress({ ...address, googleMapLink: e.target.value })}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Facilities & Rules */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-lime-400">5. Facilities & Rules</h3>
                 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {images.map((url, idx) => (
-                    <div
-                      key={idx}
-                      className="relative h-20 rounded-xl bg-cover bg-center border border-zinc-800 group overflow-hidden"
-                      style={{ backgroundImage: `url(${url})` }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteImage(url)}
-                        className="absolute top-1 right-1 bg-black/75 hover:bg-black text-white p-1 rounded-full text-[9px] leading-none cursor-pointer border border-zinc-800"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* Uploading progress placeholders */}
-                  {Object.entries(uploadProgress).map(([filename, pct]) => (
-                    <div
-                      key={filename}
-                      className="h-20 rounded-xl border border-zinc-800 bg-zinc-950 flex flex-col items-center justify-center p-2 text-center"
-                    >
-                      <span className="text-[9px] text-zinc-500 truncate w-full">{filename}</span>
-                      <span className="text-xs font-black text-lime-400 font-mono mt-1">{pct}%</span>
-                    </div>
-                  ))}
-
-                  {images.length < 5 && (
-                    <label
-                      htmlFor="turf-images-uploader"
-                      className={`h-20 rounded-xl border border-dashed border-zinc-800 hover:border-lime-500/40 bg-zinc-950 flex flex-col items-center justify-center cursor-pointer transition text-zinc-550 hover:text-zinc-300 ${
-                        uploading ? "pointer-events-none opacity-50" : ""
-                      }`}
-                    >
-                      <span className="text-xl">📷</span>
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold mt-1">Add Photo</span>
-                    </label>
-                  )}
+                <div>
+                  <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Facilities Available *</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+                    {FACILITIES_OPTIONS.map(facility => (
+                      <label key={facility} className={\`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${facilities.includes(facility) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}\`}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-lime-500"
+                          checked={facilities.includes(facility)}
+                          onChange={() => toggleArrayItem(facility, facilities, setFacilities)}
+                        />
+                        <span className="text-sm font-medium">{facility}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
-                <input
-                  type="file"
-                  id="turf-images-uploader"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
+                <div className="text-left">
+                  <label className="block text-gray-400 text-sm font-semibold mb-2">Booking Rules</label>
+                  <textarea
+                    rows={4}
+                    placeholder="e.g. Shoes compulsory\nNo Smoking\nOutside Food Allowed"
+                    value={bookingRules}
+                    onChange={(e) => setBookingRules(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                  />
+                </div>
               </div>
 
-              <div className="text-left">
-                <label className="block text-gray-400 text-sm font-semibold mb-2">Amenities (Comma separated)</label>
-                <input
-                  type="text"
-                  placeholder="Parking, Flood Lights, Washroom, Drinking Water"
-                  value={amenities}
-                  onChange={(e) => setAmenities(e.target.value)}
-                  className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-                />
+              {/* Section 6: Media & Description */}
+              <div className="space-y-4 border-t border-zinc-800 pt-6">
+                <h3 className="text-xl font-bold text-lime-400">6. Media & Description</h3>
+                
+                <div className="text-left space-y-3">
+                  <label className="block text-gray-400 text-sm font-semibold">Turf Images (Up to 5) *</label>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {images.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="relative h-24 rounded-xl bg-cover bg-center border border-zinc-800 group overflow-hidden"
+                        style={{ backgroundImage: \`url(${url})\` }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteImage(url)}
+                          className="absolute top-2 right-2 bg-black/75 hover:bg-black text-white p-1.5 rounded-full text-[10px] leading-none cursor-pointer border border-zinc-800"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    {Object.entries(uploadProgress).map(([filename, pct]) => (
+                      <div
+                        key={filename}
+                        className="h-24 rounded-xl border border-zinc-800 bg-zinc-950 flex flex-col items-center justify-center p-2 text-center"
+                      >
+                        <span className="text-[10px] text-zinc-500 truncate w-full">{filename}</span>
+                        <span className="text-sm font-black text-lime-400 font-mono mt-1">{pct}%</span>
+                      </div>
+                    ))}
+
+                    {images.length < 5 && (
+                      <label
+                        htmlFor="turf-images-uploader"
+                        className={\`h-24 rounded-xl border border-dashed border-zinc-700 hover:border-lime-500/40 bg-zinc-900 flex flex-col items-center justify-center cursor-pointer transition text-zinc-500 hover:text-zinc-300 \${
+                          uploading ? "pointer-events-none opacity-50" : ""
+                        }\`}
+                      >
+                        <span className="text-2xl">📷</span>
+                        <span className="text-[10px] uppercase tracking-wider font-bold mt-2">Add Photo</span>
+                      </label>
+                    )}
+                  </div>
+
+                  <input
+                    type="file"
+                    id="turf-images-uploader"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </div>
+
+                <div className="text-left">
+                  <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Description *</label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Describe your turf, amenities, and available facilities in detail..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                  />
+                </div>
               </div>
 
-              <div className="text-left">
-                <label className="block text-gray-400 text-sm font-semibold mb-2">Description *</label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Describe your turf, amenities, and available facilities..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
-                />
-              </div>
-
-              <div className="flex gap-4 pt-2">
+              {/* Submit Buttons */}
+              <div className="flex gap-4 pt-4 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
@@ -521,9 +732,9 @@ export default function OwnerTurfsPage() {
                 <button
                   type="submit"
                   disabled={uploading}
-                  className={`flex-1 bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition shadow-lg shadow-lime-500/15 cursor-pointer text-sm ${
+                  className={\`flex-1 bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition shadow-lg shadow-lime-500/15 cursor-pointer text-sm \${
                     uploading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  }\`}
                 >
                   {uploading ? "Uploading..." : editingTurf ? "Save Changes" : "Create Turf"}
                 </button>

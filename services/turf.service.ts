@@ -14,8 +14,19 @@ import { db } from "@/firebase/firestore";
 
 export type TurfData = {
   id?: string;
+  businessName?: string;
   name: string;
-  location: string;
+  turfType?: string;
+  turfSize?: string;
+  sports?: string[];
+  location?: string; // Legacy
+  address?: {
+    area: string;
+    city: string;
+    state: string;
+    pinCode: string;
+    googleMapLink?: string;
+  };
   price: number;
   imageUrl: string;
   images?: string[]; // Multiple images array support (up to 5)
@@ -24,10 +35,17 @@ export type TurfData = {
   isVerified?: boolean;
   avgRating?: number;
   ratingCount?: number;
-  amenities?: string[];
+  amenities?: string[]; // Legacy
+  facilities?: string[];
+  bookingRules?: string;
+  openingTime?: string;
+  closingTime?: string;
+  daysOpen?: string[];
   blockedSlots?: Record<string, string[]>; // e.g. { "2026-06-28": ["06:00"] }
   holidays?: string[]; // e.g. ["2026-06-29"]
   specialRates?: Record<string, number>; // e.g. { "2026-06-28": 1800 }
+  slotDuration?: number; // e.g., 60
+  bufferTime?: number; // e.g., 0 or 15 minutes
 };
 
 // ======================
@@ -38,7 +56,13 @@ export const createTurf = async (turfData: Omit<TurfData, "id" | "isVerified">) 
     const docRef = await addDoc(collection(db, "turfs"), {
       ...turfData,
       isVerified: false,
-      amenities: turfData.amenities || ["Parking", "Flood Lights", "Washroom", "Drinking Water"],
+      facilities: turfData.facilities || turfData.amenities || [],
+      sports: turfData.sports || [],
+      daysOpen: turfData.daysOpen || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      openingTime: turfData.openingTime || "06:00",
+      closingTime: turfData.closingTime || "23:00",
+      slotDuration: turfData.slotDuration || 60,
+      bufferTime: turfData.bufferTime || 0,
       blockedSlots: turfData.blockedSlots || {},
       holidays: turfData.holidays || [],
       specialRates: turfData.specialRates || {},
