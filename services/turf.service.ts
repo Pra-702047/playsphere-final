@@ -16,7 +16,7 @@ export type TurfData = {
   id?: string;
   businessName?: string;
   name: string;
-  turfType?: string;
+  turfType?: string | string[];
   turfSize?: string;
   sports?: string[];
   location?: string; // Legacy

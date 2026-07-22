@@ -68,9 +68,12 @@ export default function OwnerTurfsPage() {
   // Form State
   const [businessName, setBusinessName] = useState("");
   const [name, setName] = useState("");
-  const [turfType, setTurfType] = useState(TURF_TYPES[0]);
+  const [turfType, setTurfType] = useState<string[]>([]);
+  const [turfTypeDropdownOpen, setTurfTypeDropdownOpen] = useState(false);
   const [turfSize, setTurfSize] = useState(TURF_SIZES[0]);
   const [sports, setSports] = useState<string[]>([]);
+  const [sportsDropdownOpen, setSportsDropdownOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [address, setAddress] = useState({ area: "", city: "", state: "", pinCode: "", googleMapLink: "" });
   const [openingTime, setOpeningTime] = useState("06:00");
   const [closingTime, setClosingTime] = useState("23:00");
@@ -206,7 +209,7 @@ export default function OwnerTurfsPage() {
     setEditingTurf(null);
     setBusinessName("");
     setName("");
-    setTurfType(TURF_TYPES[0]);
+    setTurfType([]);
     setTurfSize(TURF_SIZES[0]);
     setSports([]);
     setAddress({ area: "", city: "", state: "", pinCode: "", googleMapLink: "" });
@@ -227,7 +230,7 @@ export default function OwnerTurfsPage() {
     setEditingTurf(turf);
     setBusinessName(turf.businessName || "");
     setName(turf.name);
-    setTurfType(turf.turfType || TURF_TYPES[0]);
+    setTurfType(Array.isArray(turf.turfType) ? turf.turfType : (turf.turfType ? [turf.turfType] : []));
     setTurfSize(turf.turfSize || TURF_SIZES[0]);
     setSports(turf.sports || []);
     setAddress({
@@ -261,8 +264,10 @@ export default function OwnerTurfsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    if (submitting) return;
 
-    if (!businessName || !name || !turfType || !turfSize || sports.length === 0) {
+    if (!businessName || !name || turfType.length === 0 || !turfSize || sports.length === 0) {
       alert("Please fill all required business and turf details.");
       return;
     }
@@ -298,6 +303,8 @@ export default function OwnerTurfsPage() {
       ownerId: user.uid,
     };
 
+    setSubmitting(true);
+
     try {
       if (editingTurf && editingTurf.id) {
         const res = await updateTurf(editingTurf.id, payload);
@@ -321,6 +328,8 @@ export default function OwnerTurfsPage() {
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -370,7 +379,7 @@ export default function OwnerTurfsPage() {
               <div className="p-6 space-y-4 flex-1 flex flex-col justify-between text-left">
                 <div>
                   <h2 className="text-2xl font-bold text-white leading-tight">{turf.name}</h2>
-                  <p className="text-gray-400 text-sm mt-1">📍 {turf.address ? `\${turf.address.area || turf.address.city}, \${turf.address.state}` : turf.location}</p>
+                  <p className="text-gray-400 text-sm mt-1">📍 {turf.address ? `${turf.address.area || turf.address.city}, ${turf.address.state}` : turf.location}</p>
                   <p className="text-lime-400 text-xl font-bold mt-2">₹{turf.price}/hour</p>
                   <p className="text-gray-400 text-sm mt-3 line-clamp-3 leading-relaxed">
                     {turf.description}
@@ -466,15 +475,40 @@ export default function OwnerTurfsPage() {
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-lime-400">2. Turf Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                  <div>
+                  <div className="relative">
                     <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Type *</label>
-                    <select
-                      value={turfType}
-                      onChange={(e) => setTurfType(e.target.value)}
-                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500"
+                    <div 
+                      onClick={() => setTurfTypeDropdownOpen(!turfTypeDropdownOpen)}
+                      className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white cursor-pointer flex justify-between items-center outline-none hover:bg-zinc-750 transition"
                     >
-                      {TURF_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                      <span className={`text-sm ${turfType.length === 0 ? 'text-zinc-400' : 'text-white font-medium'}`}>
+                        {turfType.length > 0 
+                          ? (turfType.length <= 3 ? turfType.join(", ") : `${turfType.length} types selected`)
+                          : "Select Turf Type..."}
+                      </span>
+                      <span className={`text-zinc-500 transition-transform duration-300 ${turfTypeDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+                    </div>
+
+                    {turfTypeDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setTurfTypeDropdownOpen(false)}></div>
+                        <div className="absolute z-20 w-full mt-2 bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden custom-scrollbar">
+                          <div className="max-h-60 overflow-y-auto p-2">
+                            {TURF_TYPES.map(t => (
+                              <label key={t} className={`flex items-center gap-3 p-3 hover:bg-zinc-700 rounded-lg cursor-pointer transition ${turfType.includes(t) ? 'bg-zinc-700/50 text-lime-400' : 'text-white'}`}>
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 accent-lime-500 cursor-pointer"
+                                  checked={turfType.includes(t)}
+                                  onChange={() => toggleArrayItem(t, turfType, setTurfType)}
+                                />
+                                <span className="text-sm font-medium">{t}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div>
                     <label className="block text-gray-400 text-sm font-semibold mb-2">Turf Size *</label>
@@ -500,25 +534,45 @@ export default function OwnerTurfsPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Sports Supported *</label>
-                  <select
-                    multiple
-                    size={4}
-                    value={sports}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      setSports(selected);
-                    }}
-                    className="w-full p-2 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500 custom-scrollbar"
+                  
+                  {/* Custom Dropdown Trigger */}
+                  <div 
+                    onClick={() => setSportsDropdownOpen(!sportsDropdownOpen)}
+                    className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 text-white cursor-pointer flex justify-between items-center outline-none focus:border-lime-500 hover:bg-zinc-750 transition"
                   >
-                    {SPORTS_OPTIONS.map(sport => (
-                      <option key={sport} value={sport} className="p-3 hover:bg-zinc-700 rounded-lg mb-1 cursor-pointer text-sm font-medium">
-                        {sport}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-zinc-500 text-[10px] mt-2 text-left">Hold Ctrl (Windows) or Cmd (Mac) to select multiple sports.</p>
+                    <span className={`text-sm ${sports.length === 0 ? 'text-zinc-400' : 'text-white font-medium'}`}>
+                      {sports.length > 0 
+                        ? (sports.length <= 3 ? sports.join(", ") : `${sports.length} sports selected`)
+                        : "Select Sports..."}
+                    </span>
+                    <span className={`text-zinc-500 transition-transform duration-300 ${sportsDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+                  </div>
+
+                  {/* Custom Dropdown Menu */}
+                  {sportsDropdownOpen && (
+                    <>
+                      {/* Invisible overlay to close dropdown when clicking outside */}
+                      <div className="fixed inset-0 z-10" onClick={() => setSportsDropdownOpen(false)}></div>
+                      
+                      <div className="absolute z-20 w-full mt-2 bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden custom-scrollbar">
+                        <div className="max-h-60 overflow-y-auto p-2">
+                          {SPORTS_OPTIONS.map(sport => (
+                            <label key={sport} className={`flex items-center gap-3 p-3 hover:bg-zinc-700 rounded-lg cursor-pointer transition ${sports.includes(sport) ? 'bg-zinc-700/50 text-lime-400' : 'text-white'}`}>
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 accent-lime-500 cursor-pointer"
+                                checked={sports.includes(sport)}
+                                onChange={() => toggleArrayItem(sport, sports, setSports)}
+                              />
+                              <span className="text-sm font-medium">{sport}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -552,7 +606,7 @@ export default function OwnerTurfsPage() {
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Days Open *</label>
                   <div className="flex flex-wrap gap-3 text-left">
                     {DAYS_OF_WEEK.map(day => (
-                      <label key={day} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition \${daysOpen.includes(day) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
+                      <label key={day} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition ${daysOpen.includes(day) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-lime-500"
@@ -634,7 +688,7 @@ export default function OwnerTurfsPage() {
                   <label className="block text-gray-400 text-sm font-semibold mb-3 text-left">Facilities Available *</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
                     {FACILITIES_OPTIONS.map(facility => (
-                      <label key={facility} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition \${facilities.includes(facility) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
+                      <label key={facility} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${facilities.includes(facility) ? 'bg-lime-500/10 border-lime-500 text-white' : 'bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-500'}`}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 accent-lime-500"
@@ -696,7 +750,7 @@ export default function OwnerTurfsPage() {
                     {images.length < 5 && (
                       <label
                         htmlFor="turf-images-uploader"
-                        className={`h-24 rounded-xl border border-dashed border-zinc-700 hover:border-lime-500/40 bg-zinc-900 flex flex-col items-center justify-center cursor-pointer transition text-zinc-500 hover:text-zinc-300 \${
+                        className={`h-24 rounded-xl border border-dashed border-zinc-700 hover:border-lime-500/40 bg-zinc-900 flex flex-col items-center justify-center cursor-pointer transition text-zinc-500 hover:text-zinc-300 ${
                           uploading ? "pointer-events-none opacity-50" : ""
                         }`}
                       >
@@ -741,12 +795,12 @@ export default function OwnerTurfsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={uploading}
-                  className={`flex-1 bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition shadow-lg shadow-lime-500/15 cursor-pointer text-sm \${
-                    uploading ? "opacity-50 cursor-not-allowed" : ""
+                  disabled={uploading || submitting}
+                  className={`flex-1 bg-lime-500 hover:bg-lime-400 text-black font-bold py-4 rounded-xl transition shadow-lg shadow-lime-500/15 cursor-pointer text-sm ${
+                    (uploading || submitting) ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
-                  {uploading ? "Uploading..." : editingTurf ? "Save Changes" : "Create Turf"}
+                  {uploading ? "Uploading..." : submitting ? "Saving..." : editingTurf ? "Save Changes" : "Create Turf"}
                 </button>
               </div>
             </form>

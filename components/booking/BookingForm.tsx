@@ -527,7 +527,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                       type="button"
                       disabled={isBooked}
                       onClick={() => setSlot(s)}
-                      className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center min-h-[48px] \${
+                      className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center min-h-[48px] ${
                         isBooked
                           ? "bg-zinc-950/60 border-zinc-900/60 text-zinc-550 cursor-not-allowed opacity-40"
                           : isSelected
@@ -535,7 +535,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                             : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-lime-500/40 hover:text-white cursor-pointer"
                       }`}
                     >
-                      <span className={`text-xs font-bold tracking-tight \${isBooked ? "line-through text-zinc-650" : ""}`}>
+                      <span className={`text-xs font-bold tracking-tight ${isBooked ? "line-through text-zinc-650" : ""}`}>
                         {s}
                       </span>
                       {isBooked ? (
@@ -543,7 +543,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                           Booked
                         </span>
                       ) : (
-                        <span className={`text-[7px] uppercase tracking-wider mt-0.5 \${isSelected ? "text-black/80 font-bold" : "text-lime-400/80"}`}>
+                        <span className={`text-[7px] uppercase tracking-wider mt-0.5 ${isSelected ? "text-black/80 font-bold" : "text-lime-400/80"}`}>
                           Available
                         </span>
                       )}
@@ -692,7 +692,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
             <button
               type="button"
               onClick={() => setPaymentMethod("upi")}
-              className={`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer \${
+              className={`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer ${
                 paymentMethod === "upi" ? "bg-lime-400 text-black font-black" : "text-zinc-400 hover:text-white"
               }`}
             >
@@ -701,7 +701,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
             <button
               type="button"
               onClick={() => setPaymentMethod("card")}
-              className={`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer \${
+              className={`flex-1 py-3 rounded-xl transition duration-300 cursor-pointer ${
                 paymentMethod === "card" ? "bg-lime-400 text-black font-black" : "text-zinc-400 hover:text-white"
               }`}
             >
@@ -718,7 +718,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                     <button
                       type="button"
                       onClick={() => setUpiProvider("gpay")}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold \${
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold ${
                         upiProvider === "gpay"
                           ? "border-lime-500 bg-lime-500/5 text-white"
                           : "border-zinc-800 hover:border-zinc-700 text-zinc-400"
@@ -729,7 +729,7 @@ export default function BookingForm({ turf }: { turf: TurfData }) {
                     <button
                       type="button"
                       onClick={() => setUpiProvider("phonepe")}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold \${
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer text-xs font-bold ${
                         upiProvider === "phonepe"
                           ? "border-lime-500 bg-lime-500/5 text-white"
                           : "border-zinc-800 hover:border-zinc-700 text-zinc-400"
