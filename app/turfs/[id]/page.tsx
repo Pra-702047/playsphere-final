@@ -360,6 +360,11 @@ export default function TurfDetailsPage({
 
                         {/* Review Form */}
                         {user ? (
+                          reviews.some((r) => r.userId === user.uid) ? (
+                            <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-2xl text-center text-zinc-400 text-sm">
+                              You have already reviewed this turf. Thank you for your feedback!
+                            </div>
+                          ) : (
                           <form onSubmit={handleSubmitReview} className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-2xl space-y-4">
                             <h3 className="font-bold text-sm text-white">Write a Review</h3>
                             
@@ -395,6 +400,7 @@ export default function TurfDetailsPage({
                               </Button>
                             </div>
                           </form>
+                          )
                         ) : (
                           <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl text-center text-zinc-500 text-sm">
                             Please log in to submit a rating review for this turf.

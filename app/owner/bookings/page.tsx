@@ -87,7 +87,7 @@ export default function OwnerBookingsPage() {
   };
 
   const handleInlineVerifyOTP = async (bookingId: string, correctOtp: string) => {
-    const entered = prompt(`Enter the 4-digit check-in OTP (Expected: ${correctOtp}):`);
+    const entered = prompt(`Enter the 6-digit check-in OTP (Expected: ${correctOtp}):`);
     if (entered === null) return;
     if (entered.trim() !== correctOtp) {
       alert("Incorrect OTP code. Verification failed.");
@@ -163,12 +163,12 @@ export default function OwnerBookingsPage() {
       {/* Quick Check-in Verification Card */}
       <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-xl">
         <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">🔑 Quick Check-in Verification</h2>
-        <p className="text-gray-400 text-xs mb-4">Enter the 4-digit check-in OTP provided by the player to verify slot occupancy.</p>
+        <p className="text-gray-400 text-xs mb-4">Enter the 6-digit check-in OTP provided by the player to verify slot occupancy.</p>
         <form onSubmit={handleQuickVerifyOTP} className="flex gap-3">
           <input
             type="text"
-            maxLength={4}
-            placeholder="e.g. 4821"
+            maxLength={6}
+            placeholder="e.g. 482195"
             value={otpInput}
             onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
             className="flex-1 p-3.5 rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-lime-500 font-mono text-lg font-black tracking-widest text-center"
