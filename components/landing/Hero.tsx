@@ -90,7 +90,22 @@ export default function Hero() {
   return (
     <section className="relative min-h-[92vh] flex flex-col justify-between bg-black text-white px-6 overflow-hidden select-none pb-12 pt-8">
       {/* Immersive Animated WebGL-like Canvas Background */}
-      <SportsCanvas />
+      {/* <SportsCanvas /> */}
+
+      {/* Video Background Replacement */}
+      <div className="absolute inset-0 z-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover transform-gpu contrast-110 brightness-105 saturate-125"
+        >
+          <source src="/hero-vedioo.mp4" type="video/mp4" />
+        </video>
+        {/* Dedicated dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      </div>
 
       {/* Top ambient dark neon filter */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none z-1" />
