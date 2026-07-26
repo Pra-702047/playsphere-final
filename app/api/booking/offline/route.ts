@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/firebase/firebaseAdmin";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     const deterministicBookingId = `${turfId}_${date}_${slot}`.replace(/[^a-zA-Z0-9_-]/g, "");
     
-    const bookingRef = db.collection("bookings").doc(deterministicBookingId);
+    const bookingRef = adminDb.collection("bookings").doc(deterministicBookingId);
     
     try {
       // Use create() to ensure we don't overwrite an existing booking. It fails if the document already exists.
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     // Safely write to audit_logs since we are on the server
-    await db.collection("audit_logs").add({
+    await adminDb.collection("audit_logs").add({
       action: "OFFLINE_BOOKING_CREATED",
       turfId: turfId,
       ownerId: ownerId,
