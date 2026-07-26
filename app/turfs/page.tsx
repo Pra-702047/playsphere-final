@@ -8,10 +8,11 @@ export const dynamic = "force-dynamic";
 export default async function TurfsPage() {
   const db = getAdminDb();
   const turfsSnapshot = await db.collection("turfs").get();
-  const turfs = turfsSnapshot.docs.map(doc => ({
+  const rawTurfs = turfsSnapshot.docs.map(doc => ({
     id: doc.id,
     ...(doc.data()),
   }) as any);
+  const turfs = JSON.parse(JSON.stringify(rawTurfs));
 
   return (
     <>
