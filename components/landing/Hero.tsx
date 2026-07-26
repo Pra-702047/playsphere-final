@@ -6,33 +6,14 @@ import gsap from "gsap";
 import SportsCanvas from "./SportsCanvas";
 import { getAllLocations, LocationData } from "@/services/location.service";
 import { getAllSports, SportData } from "@/services/sport.service";
-export default function Hero() {
+export default function Hero({ locations, sports }: { locations: LocationData[], sports: SportData[] }) {
   const router = useRouter();
-  const [location, setLocation] = useState("");
-  const [locationsList, setLocationsList] = useState<LocationData[]>([]);
-  const [sportsList, setSportsList] = useState<SportData[]>([]);
+  const [location, setLocation] = useState(locations.length > 0 ? locations[0].name : "Nanded, Maharashtra");
+  const [locationsList, setLocationsList] = useState<LocationData[]>(locations);
+  const [sportsList, setSportsList] = useState<SportData[]>(sports);
   const [sport, setSport] = useState("all");
   const [date, setDate] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    // Fetch available locations
-    const fetchLocations = async () => {
-      const data = await getAllLocations();
-      setLocationsList(data);
-      if (data.length > 0) {
-        setLocation(data[0].name);
-      } else {
-        setLocation("Nanded, Maharashtra"); // fallback
-      }
-    };
-    const fetchSports = async () => {
-      const data = await getAllSports();
-      setSportsList(data);
-    };
-    fetchLocations();
-    fetchSports();
-  }, []);
 
   const titlePart1 = "Find & Book";
   const titlePart2 = "Sports Turfs";

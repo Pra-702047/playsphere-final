@@ -1,8 +1,18 @@
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import TurfList from "@/components/turfs/TurfList";
+import { getAdminDb } from "@/lib/firebase-admin";
 
-export default function TurfsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TurfsPage() {
+  const db = getAdminDb();
+  const turfsSnapshot = await db.collection("turfs").get();
+  const turfs = turfsSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...(doc.data()),
+  }) as any);
+
   return (
     <>
       <Navbar />
@@ -17,7 +27,7 @@ export default function TurfsPage() {
             Discover and book sports turfs near you.
           </p>
 
-          <TurfList />
+          <TurfList initialTurfs={turfs} />
         </div>
       </main>
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   try {
@@ -10,6 +10,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Missing required fields." }, { status: 400 });
     }
 
+    const adminDb = getAdminDb();
     const deterministicBookingId = `${turfId}_${date}_${slot}`.replace(/[^a-zA-Z0-9_-]/g, "");
     
     const bookingRef = adminDb.collection("bookings").doc(deterministicBookingId);

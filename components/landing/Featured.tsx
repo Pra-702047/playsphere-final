@@ -6,27 +6,8 @@ import { getAllTurfs, TurfData } from "@/services/turf.service";
 import TurfCard from "@/components/turfs/TurfCard";
 import Link from "next/link";
 
-export default function Featured() {
-  const [featuredTurfs, setFeaturedTurfs] = useState<TurfData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        const all = await getAllTurfs();
-        // Get verified turfs (max 3 for landing page)
-        const verified = all.filter((t) => t.isVerified).slice(0, 3);
-        setFeaturedTurfs(verified);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFeatured();
-  }, []);
-
-  if (loading || featuredTurfs.length === 0) return null;
+export default function Featured({ featuredTurfs }: { featuredTurfs: TurfData[] }) {
+  if (featuredTurfs.length === 0) return null;
 
   return (
     <section className="py-24 bg-black relative">

@@ -17,40 +17,8 @@ type Turf = {
   ratingCount?: number;
 };
 
-export default function TurfList() {
-  const [turfs, setTurfs] = useState<Turf[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTurfs = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "turfs"));
-
-        const turfData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Turf, "id">),
-        }));
-
-        console.log("Fetched Turfs:", turfData);
-
-        setTurfs(turfData);
-      } catch (error) {
-        console.error("Firestore Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTurfs();
-  }, []);
-
-  if (loading) {
-    return (
-      <p className="text-center text-gray-400">
-        Loading turfs...
-      </p>
-    );
-  }
+export default function TurfList({ initialTurfs }: { initialTurfs: Turf[] }) {
+  const [turfs, setTurfs] = useState<Turf[]>(initialTurfs);
 
   if (turfs.length === 0) {
     return (
