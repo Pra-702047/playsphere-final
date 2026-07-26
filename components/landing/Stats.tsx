@@ -4,52 +4,25 @@ import React, { useEffect, useState } from "react";
 import { Users, MapPin, Map, Star } from "lucide-react";
 import { getProjectStats } from "@/services/stats.service";
 
-export default function Stats() {
-  const [statsData, setStatsData] = useState({
-    activePlayers: 2150,
-    verifiedTurfs: 142,
-    citiesListed: 5,
-    averageRating: 4.8,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await getProjectStats();
-        setStatsData({
-          activePlayers: data.activePlayers,
-          verifiedTurfs: data.verifiedTurfs,
-          citiesListed: data.citiesListed,
-          averageRating: data.averageRating,
-        });
-      } catch (err) {
-        console.error("Failed to fetch stats", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
-
+export default function Stats({ statsData }: { statsData: any }) {
   const displayStats = [
     {
-      value: loading ? "..." : `${statsData.activePlayers.toLocaleString()}+`,
+      value: `${statsData.activePlayers.toLocaleString()}+`,
       label: "Active Players",
       icon: <Users className="w-5 h-5 text-zinc-500 mb-3 mx-auto" />,
     },
     {
-      value: loading ? "..." : `${statsData.verifiedTurfs}+`,
+      value: `${statsData.verifiedTurfs}+`,
       label: "Verified Turfs",
       icon: <Map className="w-5 h-5 text-zinc-500 mb-3 mx-auto" />,
     },
     {
-      value: loading ? "..." : `${statsData.citiesListed}`,
+      value: `${statsData.citiesListed}`,
       label: "Cities Active",
       icon: <MapPin className="w-5 h-5 text-zinc-500 mb-3 mx-auto" />,
     },
     {
-      value: loading ? "..." : `${statsData.averageRating.toFixed(1)}/5`,
+      value: `${statsData.averageRating.toFixed(1)}/5`,
       label: "Average Rating",
       icon: <Star className="w-5 h-5 text-zinc-500 mb-3 mx-auto" />,
     },
