@@ -112,6 +112,9 @@ export default function Navbar() {
               <Link href="/owner/slots" className="text-sm font-bold text-zinc-450 hover:text-white transition">
                 Slots
               </Link>
+              <Link href="/owner/offline-bookings" className="text-sm font-bold text-zinc-450 hover:text-white transition">
+                Offline Bookings
+              </Link>
               <button
                 onClick={handleLogout}
                 className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-xl text-xs font-bold transition"
@@ -283,6 +286,13 @@ export default function Navbar() {
                       className="text-sm font-bold text-zinc-400 hover:text-white py-2"
                     >
                       Slots
+                    </Link>
+                    <Link
+                      href="/owner/offline-bookings"
+                      onClick={() => setMobileOpen(false)}
+                      className="text-sm font-bold text-zinc-400 hover:text-white py-2"
+                    >
+                      Offline Bookings
                     </Link>
                     <button
                       onClick={handleLogout}

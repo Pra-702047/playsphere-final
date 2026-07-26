@@ -1,10 +1,13 @@
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import {
   addDoc,
   collection,
   getDocs,
   query,
   where,
+  limit,
+  orderBy,
+  startAfter,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/firestore";
@@ -36,7 +39,10 @@ export const createBooking = async (
 
     const docRef = await addDoc(
       collection(db, "bookings"),
-      bookingData
+      {
+        ...bookingData,
+        bookingType: "online",
+      }
     );
 
     return {
@@ -98,7 +104,9 @@ export const getOwnerBookings = async (ownerId: string) => {
   try {
     const q = query(
       collection(db, "bookings"),
-      where("ownerId", "==", ownerId)
+      where("ownerId", "==", ownerId),
+      orderBy("createdAt", "desc"),
+      limit(500) // SAFETY LIMIT
     );
 
     const snapshot = await getDocs(q);
@@ -109,6 +117,31 @@ export const getOwnerBookings = async (ownerId: string) => {
   } catch (error) {
     console.error("Error getting owner bookings:", error);
     return [];
+  }
+};
+
+export const getOwnerBookingsPaginated = async (ownerId: string, lastVisibleDoc: any = null, pageSize: number = 50) => {
+  try {
+    let q = query(
+      collection(db, "bookings"),
+      where("ownerId", "==", ownerId),
+      orderBy("createdAt", "desc"),
+      limit(pageSize)
+    );
+
+    if (lastVisibleDoc) {
+      q = query(q, startAfter(lastVisibleDoc));
+    }
+
+    const snapshot = await getDocs(q);
+    return {
+      bookings: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+      lastVisible: snapshot.docs[snapshot.docs.length - 1],
+      hasMore: snapshot.docs.length === pageSize
+    };
+  } catch (error) {
+    console.error("Error getting paginated owner bookings:", error);
+    return { bookings: [], lastVisible: null, hasMore: false };
   }
 };
 
@@ -237,5 +270,49 @@ export const getBookingByOTP = async (ownerId: string, otp: string): Promise<any
   } catch (error) {
     console.error("Error getting booking by OTP:", error);
     return null;
+  }
+};
+
+export const createOfflineBooking = async (bookingData: any) => {
+  try {
+    // 1. Double-Booking Race Condition Fix: Deterministic Document ID Lock
+    const deterministicBookingId = `${bookingData.turfId}_${bookingData.date}_${bookingData.slot}`.replace(/[^a-zA-Z0-9_-]/g, "");
+    const bookingDocRef = doc(db, "bookings", deterministicBookingId);
+
+    const existingBooking = await getDoc(bookingDocRef);
+    if (existingBooking.exists() && existingBooking.data()?.status !== "cancelled" && existingBooking.data()?.status !== "rejected" && existingBooking.data()?.status !== "refunded") {
+      return {
+        success: false,
+        message: "This slot is already booked. Please select another slot.",
+      };
+    }
+
+    // 2. Add booking
+    await setDoc(bookingDocRef, {
+      ...bookingData,
+      bookingType: "offline",
+      isOffline: true,
+      status: "confirmed", // instantly block
+      createdAt: new Date(),
+    });
+
+    // 3. Write Audit Log (Accountability)
+    await addDoc(collection(db, "audit_logs"), {
+      action: "OFFLINE_BOOKING_CREATED",
+      turfId: bookingData.turfId,
+      ownerId: bookingData.ownerId,
+      details: `Owner blocked slot ${bookingData.date} at ${bookingData.slot} for offline booking.`,
+      timestamp: new Date(),
+    });
+
+    return {
+      success: true,
+      id: deterministicBookingId,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message,
+    };
   }
 };

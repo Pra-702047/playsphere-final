@@ -58,7 +58,7 @@ export const registerUser = async (
       uid: user.uid,
       name,
       email,
-      role,
+      role: "player", // SECURITY FIX: Never trust client role
       createdAt: new Date(),
     });
 

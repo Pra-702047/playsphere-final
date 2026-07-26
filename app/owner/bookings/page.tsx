@@ -35,6 +35,33 @@ export default function OwnerBookingsPage() {
   }, [user]);
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
+    if (newStatus === "refunded") {
+      const confirmRefund = window.confirm("Are you sure you want to refund this booking? This will immediately return the money to the customer via Razorpay.");
+      if (!confirmRefund) return;
+      
+      try {
+        const res = await fetch("/api/payment/refund", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId, adminUid: user?.uid }),
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          alert(`Refund processed successfully via Razorpay! Refund ID: ${data.refundId}`);
+          setBookings((prev) =>
+            prev.map((b) => (b.id === bookingId ? { ...b, status: "refunded" } : b))
+          );
+        } else {
+          alert("Refund failed: " + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to connect to refund server.");
+      }
+      return;
+    }
+
     const success = await updateBookingStatus(bookingId, newStatus);
     if (success.success) {
       alert(`Booking status changed to ${newStatus}`);
@@ -260,19 +287,22 @@ export default function OwnerBookingsPage() {
                   <th className="py-4 px-6">Date & Slot</th>
                   <th className="py-4 px-6">Sport / Count</th>
                   <th className="py-4 px-6">Price Paid</th>
+                  <th className="py-4 px-6">Booking Source</th>
                   <th className="py-4 px-6">Status</th>
                   <th className="py-4 px-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/40">
-                {filteredBookings.map((b) => (
+                {filteredBookings.map((b) => {
+                  const bookingType = b.bookingType ?? (b.isOffline ? "offline" : "online");
+                  return (
                   <tr key={b.id} className="text-gray-300 text-sm hover:bg-zinc-950/10">
                     <td className="py-4 px-6 font-semibold text-white">{b.turfName || "Unnamed Turf"}</td>
                     <td className="py-4 px-6">
                       <div className="font-semibold text-white">{b.playerName}</div>
                       <div className="text-xs text-gray-500">{b.mobile}</div>
                       <div className="text-xs text-gray-500">{b.userEmail}</div>
-                      {b.otp && (b.status === "confirmed" || b.status === "accepted") && !b.otpVerified && (
+                      {bookingType === "online" && b.otp && (b.status === "confirmed" || b.status === "accepted") && !b.otpVerified && (
                         <div className="inline-block mt-1 bg-lime-500/10 text-lime-400 text-[10px] font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
                           OTP: {b.otp}
                         </div>
@@ -292,6 +322,9 @@ export default function OwnerBookingsPage() {
                       <div className="text-xs text-gray-500">{b.players} players</div>
                     </td>
                     <td className="py-4 px-6 font-bold text-white">₹{b.price}</td>
+                    <td className="py-4 px-6 font-semibold whitespace-nowrap">
+                      {bookingType === "online" ? "🟢 Online" : "🔵 Offline"}
+                    </td>
                     <td className="py-4 px-6">
                       <span
                         className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
@@ -327,12 +360,22 @@ export default function OwnerBookingsPage() {
                         </div>
                       ) : b.status === "confirmed" || b.status === "accepted" ? (
                         <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => handleInlineVerifyOTP(b.id, b.otp || "")}
-                            className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition"
-                          >
-                            Verify OTP
-                          </button>
+                          {bookingType === "online" && b.otp && (
+                            <button
+                              onClick={() => handleInlineVerifyOTP(b.id, b.otp || "")}
+                              className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition"
+                            >
+                              Verify OTP
+                            </button>
+                          )}
+                          {bookingType === "offline" && (
+                            <button
+                              onClick={() => handleStatusChange(b.id, "checked_in")}
+                              className="bg-lime-500 hover:bg-lime-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition"
+                            >
+                              Confirm
+                            </button>
+                          )}
                           <button
                             onClick={() => handleStatusChange(b.id, "refunded")}
                             className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-semibold border border-zinc-700 transition"
@@ -352,11 +395,12 @@ export default function OwnerBookingsPage() {
                           ✅ Verified Check-in
                         </span>
                       ) : (
-                        <span className="text-zinc-500 text-xs italic">No actions available</span>
+                        <span className="text-gray-500 italic text-xs">No actions available</span>
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

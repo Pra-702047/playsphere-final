@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/firebase/firestore";
-import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, updateDoc, getDoc, setDoc, query, where, getDocs } from "firebase/firestore";
+import { getPlatformConfig } from "@/services/config.service";
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cryptographical signature check using HMAC SHA256
+    // 1. Cryptographical signature check using HMAC SHA256
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
     const generatedSignature = crypto
       .createHmac("sha256", keySecret)
@@ -43,15 +44,60 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- SIGNATURE VERIFICATION SUCCESSFUL ---
-    // Create the booking document in Firestore
+    // 2. Idempotency Check (Prevent duplicate processing of same payment)
+    const paymentsQuery = query(collection(db, "payments"), where("paymentId", "==", razorpay_payment_id));
+    const paymentsSnapshot = await getDocs(paymentsQuery);
+    if (!paymentsSnapshot.empty) {
+      console.log("Payment already verified, ignoring duplicate request");
+      return NextResponse.json({
+        success: true,
+        message: "Payment already verified.",
+        paymentId: razorpay_payment_id,
+      });
+    }
+
+    // 3. Security: Re-fetch Turf to verify true price (Prevent client price tampering)
+    const turfDoc = await getDoc(doc(db, "turfs", bookingDetails.turfId));
+    if (!turfDoc.exists()) {
+      return NextResponse.json({ success: false, message: "Turf not found." }, { status: 404 });
+    }
+    const turfData = turfDoc.data();
+    
+    const specialPrice = bookingDetails.date ? turfData.specialRates?.[bookingDetails.date] : undefined;
+    const currentHourlyPrice = specialPrice !== undefined ? specialPrice : turfData.price;
+    
+    let discountAmount = 0;
+    if (bookingDetails.appliedCouponId) {
+       const couponDoc = await getDoc(doc(db, "coupons", bookingDetails.appliedCouponId));
+       if (couponDoc.exists()) {
+          const couponData = couponDoc.data();
+          if (couponData.discountType === "percentage") {
+             discountAmount = Math.round((currentHourlyPrice * couponData.discountValue) / 100);
+          } else {
+             discountAmount = couponData.discountValue;
+          }
+       }
+    }
+    const finalCalculatedPrice = Math.max(0, currentHourlyPrice - discountAmount);
+
+    // 4. Double-Booking Race Condition Fix: Deterministic Document ID Lock
+    const deterministicBookingId = `${bookingDetails.turfId}_${bookingDetails.date}_${bookingDetails.slot}`.replace(/[^a-zA-Z0-9_-]/g, "");
+    const bookingDocRef = doc(db, "bookings", deterministicBookingId);
+    
+    // Check if locked
+    const existingBooking = await getDoc(bookingDocRef);
+    if (existingBooking.exists() && existingBooking.data().status !== "cancelled") {
+      return NextResponse.json({ success: false, message: "Slot already booked by another user during payment processing." }, { status: 409 });
+    }
+
+    // 5. Create the booking document
     const bookingPayload = {
       userId: bookingDetails.userId,
       userEmail: bookingDetails.userEmail,
       turfId: bookingDetails.turfId,
       turfName: bookingDetails.turfName,
       ownerId: bookingDetails.ownerId,
-      price: bookingDetails.price,
+      price: finalCalculatedPrice, // SECURITY FIX: Use server calculated price
       playerName: bookingDetails.playerName,
       mobile: bookingDetails.mobile,
       players: Number(bookingDetails.players),
@@ -66,24 +112,46 @@ export async function POST(req: Request) {
       otpVerified: bookingDetails.otpVerified || false,
     };
 
-    const bookingRef = await addDoc(collection(db, "bookings"), bookingPayload);
+    await setDoc(bookingDocRef, bookingPayload);
 
-    // Save payment log record
+    // 6. Save payment log record
     await addDoc(collection(db, "payments"), {
-      bookingId: bookingRef.id,
+      bookingId: deterministicBookingId,
       userId: bookingDetails.userId,
       playerName: bookingDetails.playerName,
-      amount: bookingDetails.price,
+      amount: finalCalculatedPrice,
       paymentId: razorpay_payment_id,
       status: "success",
       createdAt: new Date(),
     });
 
-    // Update coupon usage count if applicable
+    // 7. Settlement Engine: Use Central Config & Advanced Schema
+    const config = await getPlatformConfig();
+    const platformFee = Math.round(finalCalculatedPrice * config.commissionRate);
+    const taxAmount = Math.round(platformFee * config.gstRate); // GST on platform fee
+    const ownerPayout = finalCalculatedPrice - platformFee - taxAmount;
+    
+    await addDoc(collection(db, "settlements"), {
+      bookingId: deterministicBookingId,
+      turfId: bookingDetails.turfId,
+      ownerId: bookingDetails.ownerId,
+      amount: finalCalculatedPrice, // Keep for backward compatibility
+      grossAmount: currentHourlyPrice,
+      discount: discountAmount,
+      coupon: bookingDetails.appliedCouponId || null,
+      tax: taxAmount,
+      platformFee: platformFee,
+      ownerPayout: ownerPayout,
+      paymentId: razorpay_payment_id,
+      status: "pending", // To be settled to bank
+      refundStatus: "none",
+      createdAt: new Date(),
+    });
+
+    // 8. Update coupon usage
     if (bookingDetails.appliedCouponId) {
       try {
         const couponRef = doc(db, "coupons", bookingDetails.appliedCouponId);
-        // We increment the count (since this is server side, we can update directly)
         await updateDoc(couponRef, {
           usageCount: bookingDetails.appliedCouponUsageCount + 1,
         });
@@ -92,11 +160,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Log user notifications
+    // 9. Log user notifications
     await addDoc(collection(db, "notifications"), {
       userId: bookingDetails.userId,
       title: "Booking Confirmed! ⚽",
-      message: `Your booking for ${bookingDetails.turfName} on ${bookingDetails.date} at ${bookingDetails.slot} is confirmed! Payment Receipt ID: ${razorpay_payment_id}`,
+      message: `Your booking for ${bookingDetails.turfName} on ${bookingDetails.date} at ${bookingDetails.slot} is confirmed! Receipt: ${razorpay_payment_id}`,
       read: false,
       createdAt: new Date(),
     });
@@ -111,7 +179,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      bookingId: bookingRef.id,
+      bookingId: deterministicBookingId,
       paymentId: razorpay_payment_id,
     });
   } catch (error: any) {

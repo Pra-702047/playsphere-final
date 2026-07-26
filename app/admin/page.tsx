@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getAllTurfs, TurfData } from "@/services/turf.service";
 import { getAllBookings } from "@/services/booking.service";
 import { getAllUsers, UserProfile } from "@/services/user.service";
+import { getPlatformConfig } from "@/services/config.service";
 import Link from "next/link";
 
 type MonthlyRevenue = {
@@ -18,17 +19,22 @@ export default function AdminDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [commissionRate, setCommissionRate] = useState(0.10);
 
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
       try {
-        const allTurfs = await getAllTurfs();
-        const allBookings = await getAllBookings();
-        const allUsers = await getAllUsers();
+        const [allTurfs, allBookings, allUsers, config] = await Promise.all([
+          getAllTurfs(),
+          getAllBookings(),
+          getAllUsers(),
+          getPlatformConfig()
+        ]);
         setTurfs(allTurfs);
         setBookings(allBookings);
         setUsers(allUsers);
+        setCommissionRate(config.commissionRate);
       } catch (err) {
         console.error("Error loading admin stats:", err);
       } finally {
@@ -59,7 +65,7 @@ export default function AdminDashboard() {
     const priceVal = typeof b.price === "number" ? b.price : Number(b.price || 0);
     return sum + (isNaN(priceVal) ? 0 : priceVal);
   }, 0);
-  const totalCommission = Math.round(totalRevenue * 0.1);
+  const totalCommission = Math.round(totalRevenue * commissionRate);
 
   // Group revenue by month for SVG chart (Last 6 Months)
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -249,8 +255,15 @@ export default function AdminDashboard() {
               href="/admin/coupons"
               className="text-center bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold py-3 px-2 rounded-xl transition text-xs cursor-pointer"
             >
-              🎫 Coupons
+              🏷️ Coupons
             </Link>
+            <Link
+              href="/admin/fraud"
+              className="text-center bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 text-red-400 font-bold py-3 px-2 rounded-xl transition text-xs cursor-pointer col-span-2 mt-2"
+            >
+              🚨 Fraud & Abuse Monitor
+            </Link>
+
             <Link
               href="/admin/banners"
               className="text-center bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold py-3 px-2 rounded-xl transition text-xs cursor-pointer"

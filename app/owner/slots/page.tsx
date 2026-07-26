@@ -104,6 +104,34 @@ export default function OwnerSlotsPage() {
     }
   };
 
+  const handleRemoveBlockedDate = async (dateToRemove: string) => {
+    if (!selectedTurf || !selectedTurf.id) return;
+
+    const updatedBlockedSlots = { ...(selectedTurf.blockedSlots || {}) };
+    delete updatedBlockedSlots[dateToRemove];
+
+    try {
+      const res = await updateTurf(selectedTurf.id, {
+        blockedSlots: updatedBlockedSlots,
+      });
+
+      if (res.success) {
+        alert(`Blocked slots for ${dateToRemove} removed successfully!`);
+        setSelectedTurf({
+          ...selectedTurf,
+          blockedSlots: updatedBlockedSlots,
+        });
+        if (selectedDate === dateToRemove) {
+          setSelectedSlots([]);
+        }
+      } else {
+        alert("Error: " + res.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleAddHoliday = async () => {
     if (!selectedTurf || !selectedTurf.id || !holidayDate) {
       alert("Please select a holiday date");
@@ -310,7 +338,36 @@ export default function OwnerSlotsPage() {
                 </div>
               )}
             </div>
+
+            {/* Blocked Dates List */}
+            <div>
+              <h3 className="text-gray-400 text-xs font-semibold mb-3">Dates with Blocked Slots</h3>
+              {(!selectedTurf.blockedSlots || Object.keys(selectedTurf.blockedSlots).length === 0) ? (
+                <p className="text-zinc-500 text-xs italic">No blocked slots configured.</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {Object.entries(selectedTurf.blockedSlots).map(([date, slots]) => (
+                    <div
+                      key={date}
+                      className="bg-zinc-800 border border-zinc-700 px-3 py-2 rounded-lg flex justify-between items-center text-xs"
+                    >
+                      <span className="text-white font-medium cursor-pointer hover:text-lime-400" onClick={() => {
+                        setSelectedDate(date);
+                        setSelectedSlots(slots as string[]);
+                      }}>📅 {date} ({(slots as string[]).length} slots)</span>
+                      <button
+                        onClick={() => handleRemoveBlockedDate(date)}
+                        className="text-red-400 hover:text-red-300 font-bold px-2"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
 
           {/* Holiday Settings */}
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-6">

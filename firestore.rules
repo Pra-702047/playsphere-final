@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId || isAdmin();
+      allow write: if isAuthenticated() && request.auth.uid == userId || isAdmin();
+    }
+    
+    match /turfs/{turfId} {
+      allow read: if true;
+      allow create: if isOwner(request.resource.data.ownerId) || isAdmin();
+      allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
+    }
+    
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || request.auth.uid == resource.data.ownerId || isAdmin());
+      allow create: if isAuthenticated(); // Allow any authenticated user to create a booking, backend will verify contents
+      allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || request.auth.uid == resource.data.ownerId || isAdmin());
+    }
+    
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow write: if false; // Only server (API route) can write to payments
+    }
+    
+    match /settlements/{settlementId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.ownerId || isAdmin());
+      allow write: if false; // Only server (API route) can write to settlements
+    }
+    
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only server (API route) can write to audit logs
+    }
+    
+    // Default deny for everything else, except admins
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
