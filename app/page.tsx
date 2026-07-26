@@ -32,14 +32,13 @@ export default async function Home() {
   const rawFeaturedTurfs = turfsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as any);
   const featuredTurfs = JSON.parse(JSON.stringify(rawFeaturedTurfs));
   // Fetch Stats securely on the server
-  let activePlayers = 2150;
-  let verifiedTurfs = 142;
-  let citiesListed = 5;
-  let averageRating = 4.8;
+  let activePlayers = 0;
+  let verifiedTurfs = 0;
+  let citiesListed = 0;
+  let averageRating = 0;
   try {
     const playersSnapshot = await db.collection("users").where("role", "==", "player").count().get();
-    const actualPlayers = playersSnapshot.data().count;
-    if (actualPlayers > 0) activePlayers = actualPlayers;
+    activePlayers = playersSnapshot.data().count;
 
     const allTurfsSnapshot = await db.collection("turfs").get();
     let realVerifiedTurfs = 0;
@@ -53,12 +52,11 @@ export default async function Home() {
         ratedTurfsCount++;
       }
     });
-    if (realVerifiedTurfs > 0) verifiedTurfs = realVerifiedTurfs;
+    verifiedTurfs = realVerifiedTurfs;
     if (ratedTurfsCount > 0) averageRating = Number((totalRating / ratedTurfsCount).toFixed(1));
 
     const citiesSnap = await db.collection("locations").count().get();
-    const actualCities = citiesSnap.data().count;
-    if (actualCities > 0) citiesListed = actualCities;
+    citiesListed = citiesSnap.data().count;
   } catch (error) {
     console.error("Failed to fetch admin stats:", error);
   }
