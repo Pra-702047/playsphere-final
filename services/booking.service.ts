@@ -275,33 +275,16 @@ export const getBookingByOTP = async (ownerId: string, otp: string): Promise<any
 
 export const createOfflineBooking = async (bookingData: any) => {
   try {
-    // 1. Double-Booking Race Condition Fix: Deterministic Document ID Lock
-    const deterministicBookingId = `${bookingData.turfId}_${bookingData.date}_${bookingData.slot}`.replace(/[^a-zA-Z0-9_-]/g, "");
-    const bookingDocRef = doc(db, "bookings", deterministicBookingId);
-
-    const existingBooking = await getDoc(bookingDocRef);
-    if (existingBooking.exists() && existingBooking.data()?.status !== "cancelled" && existingBooking.data()?.status !== "rejected" && existingBooking.data()?.status !== "refunded") {
-      return {
-        success: false,
-        message: "This slot is already booked. Please select another slot.",
-      };
-    }
-
-    // 2. Add booking
-    await setDoc(bookingDocRef, {
-      ...bookingData,
-      bookingType: "offline",
-      isOffline: true,
-      status: "confirmed", // instantly block
-      createdAt: new Date(),
+    const response = await fetch("/api/booking/offline", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bookingData),
     });
 
-    // 3. (Audit Log write removed because client is not allowed to write to audit_logs)
-
-    return {
-      success: true,
-      id: deterministicBookingId,
-    };
+    const data = await response.json();
+    return data;
   } catch (error: any) {
     return {
       success: false,
