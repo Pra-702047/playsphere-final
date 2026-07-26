@@ -99,6 +99,7 @@ export default function Hero() {
           loop
           muted
           playsInline
+          poster="/playarena.jpg"
           className="w-full h-full object-cover transform-gpu contrast-110 brightness-105 saturate-125"
         >
           <source src="/hero-vedioo.mp4" type="video/mp4" />
