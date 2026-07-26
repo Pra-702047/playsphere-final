@@ -4,8 +4,16 @@ import { useEffect, useState } from "react";
 
 export default function PWARegister() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       // Register Service Worker
       navigator.serviceWorker
@@ -32,6 +40,9 @@ export default function PWARegister() {
           console.error("Service Worker registration failed:", error);
         });
     }
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
   }, []);
 
   const updateApp = () => {
@@ -45,20 +56,55 @@ export default function PWARegister() {
     window.location.reload();
   };
 
-  if (!updateAvailable) return null;
+  const installPWA = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted") {
+      setInstallPrompt(null);
+    }
+  };
+
+  if (!updateAvailable && !installPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 border border-zinc-800 shadow-2xl p-4 rounded-xl flex items-center gap-4 max-w-sm animate-in slide-in-from-bottom-5">
-      <div className="flex-1">
-        <p className="text-white text-sm font-semibold">New version available!</p>
-        <p className="text-zinc-400 text-xs">Update now to get the latest features.</p>
-      </div>
-      <button
-        onClick={updateApp}
-        className="px-4 py-2 bg-lime-500 hover:bg-lime-600 text-black text-sm font-bold rounded-lg transition-colors"
-      >
-        Update Now
-      </button>
-    </div>
+    <>
+      {updateAvailable && (
+        <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 border border-zinc-800 shadow-2xl p-4 rounded-xl flex items-center gap-4 max-w-sm animate-in slide-in-from-bottom-5">
+          <div className="flex-1">
+            <p className="text-white text-sm font-semibold">New version available!</p>
+            <p className="text-zinc-400 text-xs">Update now to get the latest features.</p>
+          </div>
+          <button
+            onClick={updateApp}
+            className="px-4 py-2 bg-lime-500 hover:bg-lime-600 text-black text-sm font-bold rounded-lg transition-colors"
+          >
+            Update Now
+          </button>
+        </div>
+      )}
+
+      {installPrompt && (
+        <div className="fixed bottom-4 left-4 z-50 bg-zinc-900 border border-zinc-800 shadow-2xl p-4 rounded-xl flex items-center gap-4 max-w-sm animate-in slide-in-from-bottom-5">
+          <div className="flex-1">
+            <p className="text-white text-sm font-semibold">Install PlaySphere</p>
+            <p className="text-zinc-400 text-xs">Add to home screen for quick booking.</p>
+          </div>
+          <button
+            onClick={installPWA}
+            className="px-4 py-2 bg-lime-500 hover:bg-lime-600 text-black text-sm font-bold rounded-lg transition-colors"
+          >
+            Install
+          </button>
+          <button
+            onClick={() => setInstallPrompt(null)}
+            className="px-2 py-2 text-zinc-400 hover:text-white transition-colors"
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </>
   );
 }
