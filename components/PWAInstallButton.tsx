@@ -15,9 +15,7 @@ export default function PWAInstallButton() {
     }
 
     const handleBeforeInstallPrompt = (e: any) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
+      // Stash the event so it can be triggered later via the button.
       setDeferredPrompt(e);
       // Update UI notify the user they can install the PWA
       setIsInstallable(true);
