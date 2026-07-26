@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
 import MobileBottomNav from "@/components/navbar/MobileBottomNav";
+import PWARegister from "@/components/PWARegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,6 +15,13 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport = {
+  themeColor: "#A3FF12",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "PlaySphere - Best Sports Turf Booking Platform",
@@ -52,6 +60,17 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "PlaySphere",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
@@ -68,6 +87,7 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             {children}
+            <PWARegister />
             <MobileBottomNav />
           </ToastProvider>
         </AuthProvider>

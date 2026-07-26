@@ -7,6 +7,8 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Home, Compass, User, LogOut, Settings, BarChart3, Building2, MapPin } from "lucide-react";
+import PWAInstallButton from "@/components/PWAInstallButton";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
@@ -137,6 +139,11 @@ export default function Navbar() {
           )}
         </div>
 
+        {/* PWA Install Button (Desktop) */}
+        <div className="hidden md:block">
+          <PWAInstallButton />
+        </div>
+
         {/* Mobile Hamburger menu Button */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -241,7 +248,7 @@ export default function Navbar() {
                       onClick={() => setMobileOpen(false)}
                       className="text-sm font-bold text-zinc-400 hover:text-white py-2"
                     >
-                      Verifications
+                      Turfs
                     </Link>
                     <Link
                       href="/admin/reports"
@@ -250,6 +257,11 @@ export default function Navbar() {
                     >
                       Reports
                     </Link>
+                    <div className="pt-6 border-t border-white/10 flex flex-col items-center gap-6">
+                      <div className="w-full flex justify-center">
+                        <PWAInstallButton />
+                      </div>
+                    </div>
                     <button
                       onClick={handleLogout}
                       className="bg-red-500/10 text-red-400 border border-red-500/20 py-3 rounded-xl text-xs font-bold mt-4"
