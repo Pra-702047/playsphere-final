@@ -296,14 +296,7 @@ export const createOfflineBooking = async (bookingData: any) => {
       createdAt: new Date(),
     });
 
-    // 3. Write Audit Log (Accountability)
-    await addDoc(collection(db, "audit_logs"), {
-      action: "OFFLINE_BOOKING_CREATED",
-      turfId: bookingData.turfId,
-      ownerId: bookingData.ownerId,
-      details: `Owner blocked slot ${bookingData.date} at ${bookingData.slot} for offline booking.`,
-      timestamp: new Date(),
-    });
+    // 3. (Audit Log write removed because client is not allowed to write to audit_logs)
 
     return {
       success: true,
