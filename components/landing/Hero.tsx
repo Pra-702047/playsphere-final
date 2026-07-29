@@ -69,7 +69,7 @@ export default function Hero({ locations, sports }: { locations: LocationData[],
 
 
   return (
-    <section className="relative min-h-[92vh] flex flex-col justify-between bg-black text-white px-6 overflow-hidden select-none pb-12 pt-8">
+    <section className="relative min-h-[92vh] flex flex-col justify-center bg-black text-white px-6 overflow-hidden select-none pb-12 pt-8">
       {/* Immersive Animated WebGL-like Canvas Background */}
       {/* <SportsCanvas /> */}
 
@@ -92,14 +92,11 @@ export default function Hero({ locations, sports }: { locations: LocationData[],
       {/* Top ambient dark neon filter */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none z-1" />
 
-      {/* Empty spacer to push content center */}
-      <div className="flex-1" />
-
       {/* Central Content Area */}
-      <div className="max-w-5xl w-full mx-auto text-center z-10 space-y-9 mt-12 md:mt-0 relative">
+      <div className="max-w-5xl w-full mx-auto text-center z-10 space-y-9 relative">
         
         {/* Main Heading Reveal */}
-        <h1 className="text-5.5xl md:text-7.5xl font-black leading-[1.08] tracking-tight text-white select-none">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.08] tracking-tight text-white select-none">
           <span className="block overflow-hidden py-1">
             {(titlePart1 + " " + titlePart2).split("").map((char, i) => (
               <span
