@@ -240,6 +240,12 @@ export default function AdminDashboard() {
               👥 Users list
             </Link>
             <Link
+              href="/admin/turf-owners"
+              className="text-center bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold py-3 px-2 rounded-xl transition text-xs cursor-pointer"
+            >
+              🏟️ Turf Owners
+            </Link>
+            <Link
               href="/admin/turfs"
               className="text-center bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold py-3 px-2 rounded-xl transition text-xs cursor-pointer"
             >

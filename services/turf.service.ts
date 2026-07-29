@@ -27,6 +27,7 @@ export type TurfData = {
     pinCode: string;
     googleMapLink?: string;
   };
+  rating?: number;
   price: number;
   imageUrl: string;
   images?: string[]; // Multiple images array support (up to 5)

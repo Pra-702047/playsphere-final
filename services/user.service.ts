@@ -13,6 +13,50 @@ export type UserProfile = {
   email: string;
   role: string;
   createdAt: any;
+  phone?: string;
+  
+  // Owner specific fields
+  businessName?: string;
+  alternateMobile?: string;
+  profilePhoto?: string;
+  lastLogin?: any;
+  
+  // KYC
+  aadhaarNumber?: string;
+  kycStatus?: 'pending' | 'verified' | 'rejected';
+  kycVerifiedBy?: string;
+  kycVerificationDate?: any;
+  aadhaarFrontUrl?: string;
+  aadhaarBackUrl?: string;
+  
+  // Payment Details
+  googlePayNumber?: string;
+  phonePeNumber?: string;
+  paytmNumber?: string;
+  upiId?: string;
+  bankAccountName?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+
+  // Business Address
+  address?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  mapLocation?: string;
+
+  // Commission & Settings (Admin controlled)
+  commissionType?: 'percentage' | 'fixed';
+  commissionValue?: number;
+  settlementCycle?: 'daily' | 'weekly' | 'monthly';
+  
+  // Admin Status
+  adminStatus?: 'pending' | 'approved' | 'rejected';
+  accountStatus?: 'active' | 'suspended';
+  isFeatured?: boolean;
+  remarks?: string;
 };
 
 // ======================
@@ -62,6 +106,23 @@ export const deleteUserDoc = async (userId: string) => {
     };
   } catch (error: any) {
     console.error("Error deleting user doc:", error);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+};
+// ======================
+// UPDATE USER FIELDS (ADMIN)
+// ======================
+export const updateUserFields = async (userId: string, fields: Partial<UserProfile>) => {
+  try {
+    await updateDoc(doc(db, "users", userId), fields);
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error("Error updating user fields:", error);
     return {
       success: false,
       message: error.message,
