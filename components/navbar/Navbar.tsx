@@ -172,7 +172,7 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.25 }}
-              className="fixed top-0 right-0 bottom-0 w-64 bg-zinc-950 border-l border-zinc-900 z-50 p-6 flex flex-col gap-6 shadow-2xl"
+              className="fixed top-0 right-0 bottom-0 w-64 bg-[#09090b] border-l border-zinc-900 z-50 p-6 flex flex-col gap-6 shadow-2xl"
             >
               {/* Close Button */}
               <button
@@ -187,21 +187,21 @@ export default function Navbar() {
                 <Link
                   href="/"
                   onClick={() => setMobileOpen(false)}
-                  className="text-sm font-bold text-zinc-400 hover:text-white py-2 transition"
+                  className="text-sm font-bold text-[#7CCF00] hover:text-white py-2 transition"
                 >
                   Home
                 </Link>
                 <Link
                   href="/turfs"
                   onClick={() => setMobileOpen(false)}
-                  className="text-sm font-bold text-zinc-400 hover:text-white py-2 transition"
+                  className="text-sm font-bold text-[#7CCF00] hover:text-white py-2 transition"
                 >
                   Turfs
                 </Link>
                 <Link
                   href="/connect"
                   onClick={() => setMobileOpen(false)}
-                  className="text-sm font-bold text-zinc-400 hover:text-white py-2 transition"
+                  className="text-sm font-bold text-[#7CCF00] hover:text-white py-2 transition"
                 >
                   Connect
                 </Link>
@@ -215,14 +215,14 @@ export default function Navbar() {
                     <Link
                       href="/login"
                       onClick={() => setMobileOpen(false)}
-                      className="text-sm font-bold text-zinc-400 hover:text-white py-2 transition"
+                      className="text-sm font-bold text-[#7CCF00] hover:text-white py-2 transition"
                     >
                       Login
                     </Link>
                     <Link
                       href="/register"
                       onClick={() => setMobileOpen(false)}
-                      className="text-sm font-bold text-zinc-400 hover:text-white py-2 transition text-lime-400"
+                      className="bg-[#7CCF00] text-black px-4 py-2 rounded-xl text-sm font-black text-center mt-2 hover:opacity-80 transition"
                     >
                       Register
                     </Link>
