@@ -172,7 +172,12 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.25 }}
-              className="fixed top-0 right-0 bottom-0 w-64 bg-zinc-950 border-l border-zinc-900 z-50 p-6 flex flex-col gap-6 shadow-2xl"
+              style={{
+                backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(9,9,11,0.9)), url('/nav-drawer-bg.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+              }}
+              className="fixed top-0 right-0 bottom-0 w-64 border-l border-zinc-900 z-50 p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl"
             >
               {/* Close Button */}
               <button
