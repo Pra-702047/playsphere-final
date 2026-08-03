@@ -49,15 +49,15 @@ export default function Navbar() {
 
         {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center gap-7">
-          <Link href="/" className="text-sm font-bold text-zinc-400 hover:text-white transition">
+          <Link href="/" className="text-sm font-bold text-[#7CCF00] hover:text-white transition">
             Home
           </Link>
 
-          <Link href="/turfs" className="text-sm font-bold text-zinc-400 hover:text-white transition">
+          <Link href="/turfs" className="text-sm font-bold text-[#7CCF00] hover:text-white transition">
             Turfs
           </Link>
 
-          <Link href="/connect" className="text-sm font-bold text-zinc-400 hover:text-white transition">
+          <Link href="/connect" className="text-sm font-bold text-[#7CCF00] hover:text-white transition">
             Connect
           </Link>
 
@@ -67,14 +67,14 @@ export default function Navbar() {
             <>
               <Link
                 href="/login"
-                className="text-sm font-extrabold text-zinc-350 hover:text-white border border-zinc-800 hover:border-zinc-700 px-4 py-2 rounded-xl transition"
+                className="text-sm font-extrabold text-[#7CCF00] hover:text-white border border-zinc-800 hover:border-zinc-700 px-4 py-2 rounded-xl transition"
               >
                 Login
               </Link>
 
               <Link
                 href="/register"
-                className="bg-lime-400 text-black px-5 py-2.5 rounded-xl text-sm font-black hover:bg-lime-300 transition shadow-[0_0_15px_rgba(163,230,53,0.15)]"
+                className="bg-[#7CCF00] text-black px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-80 transition shadow-[0_0_15px_rgba(124,207,0,0.15)]"
               >
                 Register
               </Link>
