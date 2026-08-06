@@ -4,16 +4,39 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getOwnerTurfs, updateTurf, TurfData } from "@/services/turf.service";
 
-const TIME_SLOTS = [
-  "06:00", "07:00", "08:00", "09:00", "10:00", 
-  "18:00", "19:00", "20:00"
-];
+const generateTimeSlots = (openingTime: string, closingTime: string, slotDuration: number, bufferTime: number = 0): string[] => {
+  const slots: string[] = [];
+  if (!openingTime || !closingTime || !slotDuration) return slots;
+
+  const [openH, openM] = openingTime.split(":").map(Number);
+  const [closeH, closeM] = closingTime.split(":").map(Number);
+
+  let currentTotalMins = openH * 60 + openM;
+  const closeTotalMins = closeH * 60 + closeM;
+
+  while (currentTotalMins + slotDuration <= closeTotalMins) {
+    const h = Math.floor(currentTotalMins / 60).toString().padStart(2, "0");
+    const m = (currentTotalMins % 60).toString().padStart(2, "0");
+    slots.push(`${h}:${m}`);
+    currentTotalMins += slotDuration + bufferTime;
+  }
+  return slots;
+};
 
 export default function OwnerSlotsPage() {
   const { user } = useAuth();
   const [turfs, setTurfs] = useState<TurfData[]>([]);
   const [selectedTurf, setSelectedTurf] = useState<TurfData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const TIME_SLOTS = selectedTurf 
+    ? generateTimeSlots(
+        selectedTurf.openingTime || "06:00", 
+        selectedTurf.closingTime || "23:00", 
+        selectedTurf.slotDuration || 60, 
+        selectedTurf.bufferTime || 0
+      )
+    : [];
 
   // Form states
   const [selectedDate, setSelectedDate] = useState("");
