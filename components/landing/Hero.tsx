@@ -14,13 +14,37 @@ export default function Hero({ locations, sports }: { locations: LocationData[],
   const [sport, setSport] = useState("all");
   const [date, setDate] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
-  const [isMobile, setIsMobile] = useState(true); // Default true for SSR safety, prevents heavy video download
+  const [isSlowConnection, setIsSlowConnection] = useState(true); // Default true for SSR safety
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const updateConnectionStatus = () => {
+      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      
+      if (connection) {
+        // effectiveType can be 'slow-2g', '2g', '3g', or '4g'
+        if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g' || connection.effectiveType === '3g' || connection.saveData) {
+          setIsSlowConnection(true);
+        } else {
+          setIsSlowConnection(false);
+        }
+      } else {
+        // Fallback if Network Information API is not supported
+        setIsSlowConnection(false);
+      }
+    };
+
+    updateConnectionStatus();
+
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection) {
+      connection.addEventListener('change', updateConnectionStatus);
+    }
+
+    return () => {
+      if (connection) {
+        connection.removeEventListener('change', updateConnectionStatus);
+      }
+    };
   }, []);
 
   const titlePart1 = "Find & Book";
@@ -83,7 +107,7 @@ export default function Hero({ locations, sports }: { locations: LocationData[],
 
       {/* Video / Image Background Replacement */}
       <div className="absolute inset-0 z-0 bg-black">
-        {!isMobile ? (
+        {!isSlowConnection ? (
           <video
             autoPlay
             loop
