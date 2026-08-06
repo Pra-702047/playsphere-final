@@ -14,6 +14,14 @@ export default function Hero({ locations, sports }: { locations: LocationData[],
   const [sport, setSport] = useState("all");
   const [date, setDate] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const [isMobile, setIsMobile] = useState(true); // Default true for SSR safety, prevents heavy video download
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const titlePart1 = "Find & Book";
   const titlePart2 = "Sports Turfs";
@@ -73,18 +81,26 @@ export default function Hero({ locations, sports }: { locations: LocationData[],
       {/* Immersive Animated WebGL-like Canvas Background */}
       {/* <SportsCanvas /> */}
 
-      {/* Video Background Replacement */}
-      <div className="absolute inset-0 z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster="/playarena.jpg"
-          className="w-full h-full object-cover transform-gpu contrast-110 brightness-105 saturate-125"
-        >
-          <source src="/hero-vedioo.mp4" type="video/mp4" />
-        </video>
+      {/* Video / Image Background Replacement */}
+      <div className="absolute inset-0 z-0 bg-black">
+        {!isMobile ? (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster="/playarena.jpg"
+            className="w-full h-full object-cover transform-gpu contrast-110 brightness-105 saturate-125"
+          >
+            <source src="/hero-vedioo.mp4" type="video/mp4" />
+          </video>
+        ) : (
+          <img 
+            src="/playarena.jpg" 
+            alt="Sports Turf" 
+            className="w-full h-full object-cover transform-gpu contrast-110 brightness-105 saturate-125"
+          />
+        )}
         {/* Dedicated dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       </div>
